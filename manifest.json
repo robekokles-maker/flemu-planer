@@ -1,0 +1,18 @@
+{
+  "short_name": "FM Planer",
+  "name": "Flechtorfer Mühle Planer Pro",
+  "description": "Schichtplaner und Abwesenheitsliste der Flechtorfer Mühle",
+  "icons": [
+    {
+      "src": "https://1drv.ms",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#F39200"
+}

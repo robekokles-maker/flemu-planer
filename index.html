@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>FM Planer Pro</title>
+    
+    <!-- PWA & App-Icon Einstellungen -->
+    <meta name="apple-mobile-web-app-title" content="FM Planer">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- VERKNÜPFUNG ZUR MANIFEST-DATEI (WICHTIG FÜR ANDROID INSTALLATION) -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- App Icons -->
+    <link rel="apple-touch-icon" href="https://1drv.ms">
+    <link rel="icon" type="image/png" href="https://1drv.ms">
+
+    <style>
+        :root { 
+            --gold-gradient: linear-gradient(90deg, #b36b00 0%, #f9d976 25%, #f39200 50%, #f9d976 75%, #b36b00 100%);
+            --primary: #F39200; 
+            --card: rgba(35, 35, 38, 0.95);
+        }
+
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
+
+        /* PDF MODAL - SMARTPHONE OPTIMIERT (9:16) */
+        #pdfViewer {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+            backdrop-filter: blur(10px); animation: fadeIn 0.3s ease;
+        }
+        .pdf-container {
+            width: 90vw; height: 160vw; max-height: 82vh; max-width: 420px;
+            background: #fff; border: 2px solid var(--primary); border-radius: 15px;
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 0 40px rgba(243, 146, 0, 0.5);
+        }
+        .pdf-header { background: #1a1a1a; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .pdf-frame-container { flex: 1; width: 100%; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; background: #eee; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .close-pdf { background: var(--gold-gradient); border: none; padding: 6px 15px; border-radius: 6px; font-weight: 900; color: #000; font-size: 11px; text-transform: uppercase; }
+
+        /* APP DESIGN */
+        .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; }
+        .metal-text { font-size: 30px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; letter-spacing: 1px; }
+
+        #infoWidget { background: rgba(243, 146, 0, 0.05); margin: 5px 15px 15px; padding: 15px; border-radius: 12px; border: 1px solid rgba(243, 146, 0, 0.3); text-align: center; transition: 0.4s; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
+        .day-label { text-align: center; font-size: 10px; font-weight: bold; color: var(--primary); }
+        .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
+        .day.today { background: rgba(243, 146, 0, 0.25) !important; border: 2px solid var(--primary); box-shadow: 0 0 12px rgba(243, 146, 0, 0.4); }
+        .day.selected { background: #444 !important; outline: 2px solid var(--primary); }
+        .day-num { position: absolute; top: 3px; left: 4px; font-size: 8px; font-weight: bold; color: var(--primary); }
+        .day.has-event { font-size: 24px; filter: sepia(1) saturate(3); }
+        .day.has-note::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
+
+        .action-btn { background: var(--gold-gradient); margin: 0 15px 15px; padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; display: block; width: calc(100% - 30px); border:none; cursor:pointer; font-size: 13px; }
+        .wide-action-btn { grid-column: span 3; background: var(--gold-gradient); border: none; padding: 16px; border-radius: 12px; color: #000; font-weight: 900; font-size: 12px; text-transform: uppercase; margin-top: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        .input-area { padding: 20px; background: #0a0a0a; border-radius: 25px 25px 0 0; border-top: 1px solid #333; margin-top: auto; }
+        .time-box { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .time-box input { padding: 12px 5px; border-radius: 10px; border: 2px solid #555; background: #1c1c1e; color: #f9d976; width: 45%; text-align: center; font-size: 24px; font-weight: 900; font-family: monospace; }
+        .suggestion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
+
+        .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(243, 146, 0, 0.05); border-radius: 12px; border: 1px dashed var(--primary); }
+        .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-family: inherit; font-size: 14px; outline: none; min-height: 60px; resize: none; }
+        .event-card { background: #1c1c1e; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+
+        #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 30000; transition: 0.6s; }
+        .loader-ring { width: 35px; height: 35px; border: 3px solid rgba(243, 146, 0, 0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+<div id="pdfViewer" onclick="if(event.target === this) closePDF()">
+    <div class="pdf-container">
+        <div class="pdf-header">
+            <span id="pdfTitle" style="font-weight: 900; color: var(--primary); font-size: 12px;">DOKUMENT</span>
+            <button class="close-pdf" onclick="closePDF()">X</button>
+        </div>
+        <div class="pdf-frame-container">
+            <iframe id="pdfFrame" src=""></iframe>
+        </div>
+    </div>
+</div>
+
+<div id="loader"><div class="metal-text">Flechtorfer Mühle</div><div class="loader-ring"></div></div>
+
+<div class="app-container" id="scrollBox">
+    <div class="app" id="mainApp">
+        <div class="metal-text">Flechtorfer Mühle</div>
+
+        <div id="infoWidget">
+            <p style="color: #f9d976; font-size: 12px; line-height: 1.4; margin: 0; font-weight: 500;">
+                Hier kannst Du den Schichtplan für die nächsten 5 Wochen einsehen. Beachte immer das Schwarze Brett!
+            </p>
+        </div>
+
+        <button onclick="viewPDF('https://amazonaws.com', 'SCHICHTPLAN')" class="action-btn">
+            📅 Schichtplan einsehen
+        </button>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 25px;">
+            <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
+            <h3 id="monthDisplay" style="color:var(--primary); margin:0; font-size: 16px;"></h3>
+            <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❯</button>
+        </div>
+
+        <div class="calendar-grid" id="calendar"></div>
+        <div id="eventContainer"></div>
+        <div id="notesContainer"></div>
+
+        <div class="input-area">
+            <div class="time-box">
+                <input type="time" id="startTime" value="06:00">
+                <span style="color:var(--primary); font-weight: 900;">➔</span>
+                <input type="time" id="endTime" value="14:00">
+            </div>
+            <div class="suggestion-grid">
+                <button class="suggest-btn" onclick="quickAdd('💼', 'Meeting')"><span>💼</span>Meeting</button>
+                <button class="suggest-btn" onclick="quickAdd('⚽', 'Fußball')"><span>⚽</span>Fußball</button>
+                <button class="suggest-btn" onclick="quickAdd('🏊', 'Schwimmen')"><span>🏊</span>Schwimmen</button>
+                <button class="suggest-btn" onclick="quickAdd('🧘', 'Relax')"><span>🧘</span>Relax</button>
+                <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
+                <button class="suggest-btn" onclick="toggleCustom()"><span>📝</span>Anderes</button>
+                
+                <button class="wide-action-btn" onclick="viewPDF('https://amazonaws.com', 'ABWESENHEITSLISTE')">
+                    📋 Abwesenheitsliste
+                </button>
+            </div>
+            <input type="text" id="customInput" placeholder="Was steht an?" style="display:none; width:100%; margin-top:10px; padding:12px; border-radius:10px; background:#000; color:white; border:1px solid var(--primary);" onkeypress="if(event.key==='Enter') quickAdd('📌', this.value)">
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentDate = new Date();
+    const realToday = new Date();
+    let selectedKey = null;
+    let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
+
+    function viewPDF(url, title) {
+        document.getElementById('pdfTitle').innerText = title;
+        document.getElementById('pdfFrame').src = url;
+        document.getElementById('pdfViewer').style.display = 'flex';
+    }
+
+    function closePDF() {
+        document.getElementById('pdfViewer').style.display = 'none';
+        document.getElementById('pdfFrame').src = "";
+    }
+
+    document.getElementById('scrollBox').onscroll = function() {
+        let info = document.getElementById('infoWidget');
+        if (this.scrollTop > 40) { 
+            info.style.opacity = "0"; info.style.height = "0"; info.style.margin = "0"; 
+        } else { 
+            info.style.opacity = "1"; info.style.height = "auto"; info.style.margin = "5px 15px 15px"; 
+        }
+    };
+
+    function renderCalendar() {
+        const cal = document.getElementById('calendar');
+        cal.innerHTML = '<div class="day-label">MO</div><div class="day-label">DI</div><div class="day-label">MI</div><div class="day-label">DO</div><div class="day-label">FR</div><div class="day-label">SA</div><div class="day-label">SO</div>';
+        const y = currentDate.getFullYear(), m = currentDate.getMonth();
+        document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate);
+        let firstDay = (new Date(y, m, 1).getDay() + 6) % 7;
+        for (let i = 0; i < firstDay; i++) cal.appendChild(document.createElement('div'));
+        for (let i = 1; i <= new Date(y, m + 1, 0).getDate(); i++) {
+            const key = `${i}-${m}-${y}`, d = document.createElement('div');
+            d.className = 'day' + ((new Date(y, m, i).getDay() % 6 === 0) ? ' weekend' : '');
+            if (i === realToday.getDate() && m === realToday.getMonth() && y === realToday.getFullYear()) d.classList.add('today');
+            if (key === selectedKey) d.classList.add('selected');
+            if (events[key]?.emoji) { d.classList.add('has-event'); d.innerHTML = `<span class="day-num">${i}</span>${events[key].emoji}`; }
+            else { d.innerHTML = i; if (events[key]?.note?.trim()) d.classList.add('has-note'); }
+            d.onclick = () => { selectedKey = key; renderCalendar(); renderUI(); };
+            cal.appendChild(d);
+        }
+    }
+
+    function renderUI() {
+        const evC = document.getElementById('eventContainer'), ntC = document.getElementById('notesContainer');
+        evC.innerHTML = ''; ntC.innerHTML = '';
+        if (!selectedKey) return;
+        if (events[selectedKey]?.emoji) {
+            const ev = events[selectedKey];
+            evC.innerHTML = `<div class="event-card"><div>${ev.emoji} <b>${ev.title}</b><br><small style="color:var(--primary)">${ev.start} - ${ev.end} Uhr</small></div><button onclick="deleteEvent('${selectedKey}')" style="border:none; background:none; font-size:22px; color:#ff453a;">✕</button></div>`;
+        }
+        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Hier schreiben..." oninput="saveNote()">${events[selectedKey]?.note || ""}</textarea></div>`;
+    }
+
+    function saveNote() {
+        if (!events[selectedKey]) events[selectedKey] = {};
+        events[selectedKey].note = document.getElementById('dayNote').value;
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        if (events[selectedKey].note.length <= 1) renderCalendar();
+    }
+
+    function quickAdd(emoji, title) {
+        if (!selectedKey) return alert("Tag wählen!");
+        if (!events[selectedKey]) events[selectedKey] = {};
+        const s = document.getElementById('startTime').value, e = document.getElementById('endTime').value;
+        Object.assign(events[selectedKey], { emoji, title, start: s, end: e });
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        renderCalendar(); renderUI();
+    }
+
+    function deleteEvent(key) {
+        if (events[key]) { events[key].emoji = null; if (!events[key].note) delete events[key]; }
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        renderCalendar(); renderUI();
+    }
+
+    function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderCalendar(); }
+    function toggleCustom() { const i = document.getElementById('customInput'); i.style.display = (i.style.display==='block') ? 'none' : 'block'; if(i.style.display==='block') i.focus(); }
+
+    window.addEventListener('load', () => {
+        renderCalendar();
+        setTimeout(() => { document.getElementById('loader').style.opacity = '0'; setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 600); }, 1200);
+    });
+</script>
+</body>
+</html>
