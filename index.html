@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,15 +23,13 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
 
-        /* HILFE & TEILEN BUTTONS */
-        .top-btn {
-            position: absolute; top: 20px;
-            background: rgba(243, 146, 0, 0.1); border: 1px solid var(--primary);
-            color: var(--primary); border-radius: 50%; width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 100;
+        /* WIDGETS UNTER LOGO */
+        .widget-row { display: flex; gap: 10px; padding: 0 15px 15px; }
+        .info-btn-widget { 
+            flex: 1; background: rgba(243, 146, 0, 0.1); border: 1px solid rgba(243, 146, 0, 0.3);
+            border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center;
+            gap: 8px; color: var(--primary); font-weight: bold; font-size: 13px; cursor: pointer;
         }
-        .help-btn { left: 15px; }
-        .share-btn { right: 15px; }
 
         /* HILFE OVERLAY */
         #helpOverlay {
@@ -55,10 +52,10 @@
 
         /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; position: relative; }
-        .metal-text { font-size: 26px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
+        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; }
+        .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; letter-spacing: 1px; }
 
-        #infoWidget { background: rgba(243, 146, 0, 0.05); margin: 5px 15px 15px; padding: 15px; border-radius: 12px; border: 1px solid rgba(243, 146, 0, 0.3); text-align: center; transition: 0.4s; }
+        #infoWidget { background: rgba(243, 146, 0, 0.05); margin: 0 15px 15px; padding: 15px; border-radius: 12px; border: 1px solid rgba(243, 146, 0, 0.3); text-align: center; transition: 0.4s; }
 
         /* KALENDER & MULTI-SELECT */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
@@ -66,7 +63,6 @@
         .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
         .day.weekend { background: #1c1c1e; color: #666; }
         .day.today { background: rgba(243, 146, 0, 0.25) !important; border: 2px solid var(--primary); }
-        
         .day.selected-range { background: rgba(243, 146, 0, 0.4) !important; border-radius: 0; outline: 1px solid var(--primary); }
         .day-num { position: absolute; top: 3px; left: 4px; font-size: 8px; font-weight: bold; color: var(--primary); }
         .day.has-event { font-size: 24px; filter: sepia(1) saturate(3); }
@@ -108,7 +104,7 @@
     </div>
 </div>
 
-<!-- PDF VIEWER MODAL -->
+<!-- PDF VIEWER -->
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container">
         <div class="pdf-header">
@@ -123,12 +119,18 @@
 
 <div class="app-container" id="scrollBox">
     <div class="app" id="mainApp">
-        <!-- TOP BUTTONS -->
-        <button class="top-btn help-btn" onclick="toggleHelp(true)">?</button>
-        <button class="top-btn share-btn" onclick="shareApp()">🔗</button>
-
         <div class="metal-text">Flechtorfer Mühle</div>
         
+        <!-- WIDGET REIHE: HILFE & TEILEN -->
+        <div class="widget-row">
+            <div class="info-btn-widget" onclick="toggleHelp(true)">
+                <span>❓</span> Hilfe
+            </div>
+            <div class="info-btn-widget" onclick="shareApp()">
+                <span>🔗</span> Teilen
+            </div>
+        </div>
+
         <div id="infoWidget">
             <p style="color: #f9d976; font-size: 12px; line-height: 1.4; margin: 0; font-weight: 500;">
                 Hier kannst Du den Schichtplan einsehen. Beachte immer das Schwarze Brett!
@@ -173,7 +175,6 @@
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
     let rangeStart = null, rangeEnd = null;
 
-    // HILFE & TEILEN LOGIK
     function toggleHelp(show) { document.getElementById('helpOverlay').style.display = show ? 'flex' : 'none'; }
     async function shareApp() {
         try {
@@ -192,7 +193,7 @@
     document.getElementById('scrollBox').onscroll = function() {
         let info = document.getElementById('infoWidget');
         if (this.scrollTop > 40) { info.style.opacity = "0"; info.style.height = "0"; info.style.margin = "0"; }
-        else { info.style.opacity = "1"; info.style.height = "auto"; info.style.margin = "5px 15px 15px"; }
+        else { info.style.opacity = "1"; info.style.height = "auto"; info.style.margin = "0 15px 15px"; }
     };
 
     function renderCalendar() {
@@ -233,7 +234,7 @@
             const ev = events[k];
             evC.innerHTML = `<div class="event-card"><div>${ev.emoji} <b>${ev.title}</b><br><small style="color:var(--primary)">${ev.start} - ${ev.end} Uhr</small></div><button onclick="deleteEvent('${k}')" style="border:none; background:none; font-size:22px; color:#ff453a;">✕</button></div>`;
         }
-        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Hier schreiben..." oninput="saveNote()">${events[k]?.note || ""}</textarea></div>`;
+        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Schreiben..." oninput="saveNote()">${events[k]?.note || ""}</textarea></div>`;
     }
     function saveNote() {
         let k = `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
@@ -262,7 +263,6 @@
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
         renderCalendar(); renderUI();
     }
-
     function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderCalendar(); }
     function toggleCustom() { const i = document.getElementById('customInput'); i.style.display = (i.style.display==='block') ? 'none' : 'block'; if(i.style.display==='block') i.focus(); }
 
@@ -273,3 +273,4 @@
 </script>
 </body>
 </html>
+
