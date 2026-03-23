@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,11 +42,11 @@
         .help-card ul { text-align: left; font-size: 13px; line-height: 1.5; color: #ccc; padding-left: 20px; }
         .help-card li { margin-bottom: 8px; }
 
-        /* PDF MODAL 9:16 */
+        /* PDF MODAL 9:16 - iPHONE OPTIMIERT */
         #pdfViewer { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); animation: fadeIn 0.3s ease; }
         .pdf-container { width: 90vw; height: 160vw; max-height: 82vh; max-width: 420px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(243, 146, 0, 0.5); }
         .pdf-header { background: #1a1a1a; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .pdf-frame-container { flex: 1; width: 100%; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; background: #eee; }
+        .pdf-frame-container { flex: 1; width: 100%; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; background: #eee; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
         .close-pdf { background: var(--gold-gradient); border: none; padding: 6px 15px; border-radius: 6px; font-weight: 900; color: #000; font-size: 11px; text-transform: uppercase; }
 
@@ -86,6 +85,7 @@
         #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 30000; transition: 0.6s; }
         .loader-ring { width: 35px; height: 35px; border: 3px solid rgba(243, 146, 0, 0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -122,7 +122,6 @@
     <div class="app" id="mainApp">
         <div class="metal-text">Flechtorfer Mühle</div>
         
-        <!-- WIDGET REIHE -->
         <div class="widget-row">
             <div class="info-btn-widget" onclick="toggleHelp(true)"><span>❓</span> Hilfe</div>
             <div class="info-btn-widget" onclick="shareApp()"><span>🔗</span> Teilen</div>
@@ -167,7 +166,7 @@
 
 <script>
     // PASSWORT SCHUTZ
-    const PASSWORT = "Müller2026";
+    const PASSWORT = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
         let input = prompt("Bitte Passwort eingeben:");
         if (input === PASSWORT) {
@@ -193,11 +192,21 @@
         } catch (err) {}
     }
 
+    // iPHONE OPTIMIERTE PDF FUNKTION
     function viewPDF(url, title) {
         document.getElementById('pdfTitle').innerText = title;
-        document.getElementById('pdfFrame').src = url;
+        
+        // Vollständigen URL-Pfad für den Google Viewer bauen
+        const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const fullFileUrl = currentPath + url;
+
+        // Google Viewer als Proxy nutzen, um iPhone Download-Zwang zu umgehen
+        const googleViewer = "https://google.com";
+        
+        document.getElementById('pdfFrame').src = googleViewer + encodeURIComponent(fullFileUrl);
         document.getElementById('pdfViewer').style.display = 'flex';
     }
+
     function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; document.getElementById('pdfFrame').src = ""; }
 
     function renderCalendar() {
@@ -268,7 +277,6 @@
         renderCalendar(); renderUI();
     }
     function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderCalendar(); }
-    function toggleCustom() { const i = document.getElementById('customInput'); i.style.display = (i.style.display==='block') ? 'none' : 'block'; if(i.style.display==='block') i.focus(); }
 
     window.addEventListener('load', () => {
         renderCalendar();
