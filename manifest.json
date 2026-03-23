@@ -4,12 +4,13 @@
   "description": "Schichtplaner und Abwesenheitsliste der Flechtorfer Mühle",
   "icons": [
     {
-      "src": "https://1drv.ms",
+      "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
+
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
