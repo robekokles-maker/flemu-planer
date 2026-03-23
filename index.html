@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
+    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,7 +53,8 @@
 
         /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; }
+        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; visibility: hidden; }
+        .app.unlocked { visibility: visible; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; letter-spacing: 1px; }
 
         #infoWidget { background: rgba(243, 146, 0, 0.05); margin: 0 15px 15px; padding: 15px; border-radius: 12px; border: 1px solid rgba(243, 146, 0, 0.3); text-align: center; transition: 0.4s; }
@@ -84,7 +86,6 @@
         #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 30000; transition: 0.6s; }
         .loader-ring { width: 35px; height: 35px; border: 3px solid rgba(243, 146, 0, 0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -96,7 +97,7 @@
         <ul>
             <li><strong>Einzelner Tag:</strong> Datum 1x antippen.</li>
             <li><strong>Zeitraum wählen:</strong> Starttag tippen, dann Endtag tippen. Bereich wird gold.</li>
-            <li><strong>Eintragen:</strong> Zeitraum wählen, Uhrzeit oben einstellen, Symbol klicken.</li>
+            <li><strong>Eintragen:</strong> Zeitraum wählen, Uhrzeit einstellen, Symbol klicken.</li>
             <li><strong>Notizen:</strong> Tag wählen und Text unten eingeben.</li>
             <li><strong>PDFs:</strong> Auf die goldenen Buttons klicken.</li>
         </ul>
@@ -121,14 +122,10 @@
     <div class="app" id="mainApp">
         <div class="metal-text">Flechtorfer Mühle</div>
         
-        <!-- WIDGET REIHE: HILFE & TEILEN -->
+        <!-- WIDGET REIHE -->
         <div class="widget-row">
-            <div class="info-btn-widget" onclick="toggleHelp(true)">
-                <span>❓</span> Hilfe
-            </div>
-            <div class="info-btn-widget" onclick="shareApp()">
-                <span>🔗</span> Teilen
-            </div>
+            <div class="info-btn-widget" onclick="toggleHelp(true)"><span>❓</span> Hilfe</div>
+            <div class="info-btn-widget" onclick="shareApp()"><span>🔗</span> Teilen</div>
         </div>
 
         <div id="infoWidget">
@@ -164,12 +161,25 @@
                 <button class="suggest-btn" onclick="toggleCustom()"><span>📝</span>Anderes</button>
                 <button class="wide-action-btn" onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')">📋 Abwesenheitsliste</button>
             </div>
-            <input type="text" id="customInput" placeholder="Was steht an?" style="display:none; width:100%; margin-top:10px; padding:12px; border-radius:10px; background:#000; color:white; border:1px solid var(--primary);" onkeypress="if(event.key==='Enter') quickAdd('📌', this.value)">
         </div>
     </div>
 </div>
 
 <script>
+    // PASSWORT SCHUTZ
+    const PASSWORT = "Müller 2026";
+    if (localStorage.getItem('fm_access') !== 'true') {
+        let input = prompt("Bitte Passwort eingeben:");
+        if (input === PASSWORT) {
+            localStorage.setItem('fm_access', 'true');
+        } else {
+            alert("Falsches Passwort!");
+            location.reload();
+        }
+    } else {
+        document.getElementById('mainApp').classList.add('unlocked');
+    }
+
     let currentDate = new Date();
     const realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
@@ -189,12 +199,6 @@
         document.getElementById('pdfViewer').style.display = 'flex';
     }
     function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; document.getElementById('pdfFrame').src = ""; }
-
-    document.getElementById('scrollBox').onscroll = function() {
-        let info = document.getElementById('infoWidget');
-        if (this.scrollTop > 40) { info.style.opacity = "0"; info.style.height = "0"; info.style.margin = "0"; }
-        else { info.style.opacity = "1"; info.style.height = "auto"; info.style.margin = "0 15px 15px"; }
-    };
 
     function renderCalendar() {
         const cal = document.getElementById('calendar');
@@ -246,10 +250,10 @@
     function quickAdd(emoji, title) {
         if (!rangeStart) return;
         const s = document.getElementById('startTime').value, e = document.getElementById('endTime').value;
-        let sL = rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
-        let eL = rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : rangeStart;
-        let t = new Date(sL);
-        while (t <= eL) {
+        let startL = rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
+        let endL = rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : rangeStart;
+        let t = new Date(startL);
+        while (t <= endL) {
             let k = `${t.getDate()}-${t.getMonth()}-${t.getFullYear()}`;
             if (!events[k]) events[k] = {};
             Object.assign(events[k], { emoji, title, start: s, end: e });
@@ -273,4 +277,5 @@
 </script>
 </body>
 </html>
+
 
