@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
+    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-
-    <!-- Icons & Manifest lokal von GitHub -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
 
@@ -25,7 +24,28 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
 
-        /* PDF MODAL 9:16 - SMARTPHONE OPTIMIERT */
+        /* HILFE & TEILEN BUTTONS */
+        .top-btn {
+            position: absolute; top: 20px;
+            background: rgba(243, 146, 0, 0.1); border: 1px solid var(--primary);
+            color: var(--primary); border-radius: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 100;
+        }
+        .help-btn { left: 15px; }
+        .share-btn { right: 15px; }
+
+        /* HILFE OVERLAY */
+        #helpOverlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            padding: 25px; backdrop-filter: blur(10px);
+        }
+        .help-card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid var(--primary); max-width: 400px; text-align: center; }
+        .help-card h2 { color: var(--primary); margin: 0 0 15px; text-transform: uppercase; font-style: italic; font-size: 18px; }
+        .help-card ul { text-align: left; font-size: 13px; line-height: 1.5; color: #ccc; padding-left: 20px; }
+        .help-card li { margin-bottom: 8px; }
+
+        /* PDF MODAL 9:16 */
         #pdfViewer { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); animation: fadeIn 0.3s ease; }
         .pdf-container { width: 90vw; height: 160vw; max-height: 82vh; max-width: 420px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 40px rgba(243, 146, 0, 0.5); }
         .pdf-header { background: #1a1a1a; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
@@ -35,8 +55,8 @@
 
         /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; }
-        .metal-text { font-size: 30px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; letter-spacing: 1px; }
+        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); display: flex; flex-direction: column; padding-bottom: 40px; position: relative; }
+        .metal-text { font-size: 26px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
 
         #infoWidget { background: rgba(243, 146, 0, 0.05); margin: 5px 15px 15px; padding: 15px; border-radius: 12px; border: 1px solid rgba(243, 146, 0, 0.3); text-align: center; transition: 0.4s; }
 
@@ -48,9 +68,6 @@
         .day.today { background: rgba(243, 146, 0, 0.25) !important; border: 2px solid var(--primary); }
         
         .day.selected-range { background: rgba(243, 146, 0, 0.4) !important; border-radius: 0; outline: 1px solid var(--primary); }
-        .day.range-start { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-        .day.range-end { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-
         .day-num { position: absolute; top: 3px; left: 4px; font-size: 8px; font-weight: bold; color: var(--primary); }
         .day.has-event { font-size: 24px; filter: sepia(1) saturate(3); }
         .day.has-note::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
@@ -76,6 +93,22 @@
 </head>
 <body>
 
+<!-- HILFE OVERLAY -->
+<div id="helpOverlay" onclick="toggleHelp(false)">
+    <div class="help-card" onclick="event.stopPropagation()">
+        <h2>Kurzanleitung</h2>
+        <ul>
+            <li><strong>Einzelner Tag:</strong> Datum 1x antippen.</li>
+            <li><strong>Zeitraum wählen:</strong> Starttag tippen, dann Endtag tippen. Bereich wird gold.</li>
+            <li><strong>Eintragen:</strong> Zeitraum wählen, Uhrzeit oben einstellen, Symbol klicken.</li>
+            <li><strong>Notizen:</strong> Tag wählen und Text unten eingeben.</li>
+            <li><strong>PDFs:</strong> Auf die goldenen Buttons klicken.</li>
+        </ul>
+        <button class="action-btn" style="margin-top: 15px; width: 100%;" onclick="toggleHelp(false)">Verstanden!</button>
+    </div>
+</div>
+
+<!-- PDF VIEWER MODAL -->
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container">
         <div class="pdf-header">
@@ -90,18 +123,19 @@
 
 <div class="app-container" id="scrollBox">
     <div class="app" id="mainApp">
-        <div class="metal-text">Flechtorfer Mühle</div>
+        <!-- TOP BUTTONS -->
+        <button class="top-btn help-btn" onclick="toggleHelp(true)">?</button>
+        <button class="top-btn share-btn" onclick="shareApp()">🔗</button>
 
+        <div class="metal-text">Flechtorfer Mühle</div>
+        
         <div id="infoWidget">
             <p style="color: #f9d976; font-size: 12px; line-height: 1.4; margin: 0; font-weight: 500;">
-                Hier kannst Du den Schichtplan für die nächsten 5 Wochen einsehen. Beachte immer das Schwarze Brett!
+                Hier kannst Du den Schichtplan einsehen. Beachte immer das Schwarze Brett!
             </p>
         </div>
 
-        <!-- Schichtplan Button mit GitHub-Dateiname -->
-        <button onclick="viewPDF('Schichtplan.pdf', 'SCHICHTPLAN')" class="action-btn">
-            📅 Schichtplan einsehen
-        </button>
+        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan einsehen</button>
 
         <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 25px;">
             <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
@@ -126,11 +160,7 @@
                 <button class="suggest-btn" onclick="quickAdd('🧘', 'Relax')"><span>🧘</span>Relax</button>
                 <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
                 <button class="suggest-btn" onclick="toggleCustom()"><span>📝</span>Anderes</button>
-                
-                <!-- Abwesenheitsliste Button mit GitHub-Dateiname -->
-                <button class="wide-action-btn" onclick="viewPDF('Abwesenheitsliste-Flemu.pdf', 'ABWESENHEITSLISTE')">
-                    📋 Abwesenheitsliste
-                </button>
+                <button class="wide-action-btn" onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')">📋 Abwesenheitsliste</button>
             </div>
             <input type="text" id="customInput" placeholder="Was steht an?" style="display:none; width:100%; margin-top:10px; padding:12px; border-radius:10px; background:#000; color:white; border:1px solid var(--primary);" onkeypress="if(event.key==='Enter') quickAdd('📌', this.value)">
         </div>
@@ -141,19 +171,23 @@
     let currentDate = new Date();
     const realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
-    let rangeStart = null;
-    let rangeEnd = null;
+    let rangeStart = null, rangeEnd = null;
+
+    // HILFE & TEILEN LOGIK
+    function toggleHelp(show) { document.getElementById('helpOverlay').style.display = show ? 'flex' : 'none'; }
+    async function shareApp() {
+        try {
+            if (navigator.share) { await navigator.share({ title: 'FM Planer Pro', text: 'Der Planer der Flechtorfer Mühle.', url: window.location.href }); } 
+            else { navigator.clipboard.writeText(window.location.href); alert("Link kopiert!"); }
+        } catch (err) {}
+    }
 
     function viewPDF(url, title) {
         document.getElementById('pdfTitle').innerText = title;
         document.getElementById('pdfFrame').src = url;
         document.getElementById('pdfViewer').style.display = 'flex';
     }
-
-    function closePDF() {
-        document.getElementById('pdfViewer').style.display = 'none';
-        document.getElementById('pdfFrame').src = "";
-    }
+    function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; document.getElementById('pdfFrame').src = ""; }
 
     document.getElementById('scrollBox').onscroll = function() {
         let info = document.getElementById('infoWidget');
@@ -168,22 +202,13 @@
         document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate);
         let firstDay = (new Date(y, m, 1).getDay() + 6) % 7;
         for (let i = 0; i < firstDay; i++) cal.appendChild(document.createElement('div'));
-        
         for (let i = 1; i <= new Date(y, m + 1, 0).getDate(); i++) {
-            const key = `${i}-${m}-${y}`;
-            const loopDate = new Date(y, m, i);
-            const d = document.createElement('div');
+            const key = `${i}-${m}-${y}`, loopDate = new Date(y, m, i), d = document.createElement('div');
             d.className = 'day' + ((loopDate.getDay() % 6 === 0) ? ' weekend' : '');
-            
-            if (rangeStart && !rangeEnd && rangeStart.getTime() === loopDate.getTime()) d.classList.add('selected-range', 'range-start');
+            if (rangeStart && !rangeEnd && rangeStart.getTime() === loopDate.getTime()) d.classList.add('selected-range');
             if (rangeStart && rangeEnd) {
-                let s = rangeStart < rangeEnd ? rangeStart : rangeEnd;
-                let e = rangeStart < rangeEnd ? rangeEnd : rangeStart;
-                if (loopDate >= s && loopDate <= e) {
-                    d.classList.add('selected-range');
-                    if (loopDate.getTime() === s.getTime()) d.classList.add('range-start');
-                    if (loopDate.getTime() === e.getTime()) d.classList.add('range-end');
-                }
+                let s = rangeStart < rangeEnd ? rangeStart : rangeEnd, e = rangeStart < rangeEnd ? rangeEnd : rangeStart;
+                if (loopDate >= s && loopDate <= e) d.classList.add('selected-range');
             }
             if (i === realToday.getDate() && m === realToday.getMonth() && y === realToday.getFullYear()) d.classList.add('today');
             if (events[key]?.emoji) { d.classList.add('has-event'); d.innerHTML = `<span class="day-num">${i}</span>${events[key].emoji}`; }
@@ -199,43 +224,39 @@
         else { rangeEnd = clicked; }
         renderCalendar(); renderUI();
     }
-
     function renderUI() {
         const evC = document.getElementById('eventContainer'), ntC = document.getElementById('notesContainer');
         evC.innerHTML = ''; ntC.innerHTML = '';
-        let key = rangeStart ? `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}` : null;
-        if (!key) return;
-        if (events[key]?.emoji) {
-            const ev = events[key];
-            evC.innerHTML = `<div class="event-card"><div>${ev.emoji} <b>${ev.title}</b><br><small style="color:var(--primary)">${ev.start} - ${ev.end} Uhr</small></div><button onclick="deleteEvent('${key}')" style="border:none; background:none; font-size:22px; color:#ff453a;">✕</button></div>`;
+        let k = rangeStart ? `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}` : null;
+        if (!k) return;
+        if (events[k]?.emoji) {
+            const ev = events[k];
+            evC.innerHTML = `<div class="event-card"><div>${ev.emoji} <b>${ev.title}</b><br><small style="color:var(--primary)">${ev.start} - ${ev.end} Uhr</small></div><button onclick="deleteEvent('${k}')" style="border:none; background:none; font-size:22px; color:#ff453a;">✕</button></div>`;
         }
-        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Hier schreiben..." oninput="saveNote()">${events[key]?.note || ""}</textarea></div>`;
+        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Hier schreiben..." oninput="saveNote()">${events[k]?.note || ""}</textarea></div>`;
     }
-
     function saveNote() {
-        let key = `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-        if (!events[key]) events[key] = {};
-        events[key].note = document.getElementById('dayNote').value;
+        let k = `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
+        if (!events[k]) events[k] = {};
+        events[k].note = document.getElementById('dayNote').value;
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
         renderCalendar();
     }
-
     function quickAdd(emoji, title) {
-        if (!rangeStart) return alert("Tag wählen!");
+        if (!rangeStart) return;
         const s = document.getElementById('startTime').value, e = document.getElementById('endTime').value;
-        let startLoop = rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
-        let endLoop = rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : rangeStart;
-        let temp = new Date(startLoop);
-        while (temp <= endLoop) {
-            let k = `${temp.getDate()}-${temp.getMonth()}-${temp.getFullYear()}`;
+        let sL = rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
+        let eL = rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : rangeStart;
+        let t = new Date(sL);
+        while (t <= eL) {
+            let k = `${t.getDate()}-${t.getMonth()}-${t.getFullYear()}`;
             if (!events[k]) events[k] = {};
             Object.assign(events[k], { emoji, title, start: s, end: e });
-            temp.setDate(temp.getDate() + 1);
+            t.setDate(t.getDate() + 1);
         }
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
         rangeStart = rangeEnd = null; renderCalendar(); renderUI();
     }
-
     function deleteEvent(key) {
         if (events[key]) { events[key].emoji = null; if (!events[key].note) delete events[key]; }
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
