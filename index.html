@@ -5,19 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA FIX FÜR EDGE & CHROME -->
-    <meta name="mobile-web-app-capable" content="yes">
+    <!-- PWA SETTINGS -->
+    <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="theme-color" content="#F39200">
 
-    <!-- Icons -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
-    
-    <!-- Link zum Manifest (Zwingend für Edge App-Erkennung) -->
-    <link rel="manifest" href="manifest.json">
 
     <style>
         :root { 
@@ -66,17 +61,17 @@
 
 <div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;"><div class="metal-text">Flechtorfer Mühle</div></div>
 
+<!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); text-transform: uppercase; margin-bottom:15px;">Anleitung & Funktionen</h2>
         <div class="scroll-area">
-            <p><strong>1. Zeiträume markieren:</strong> Tippe ein Startdatum und ein Enddatum an. Der gesamte Bereich wird <strong>gold markiert</strong>.</p>
-            <p><strong>2. Schichten eintragen:</strong> Wähle die Uhrzeit (➔) und tippe auf ein Icon (z.B. Meeting). Der Eintrag wird für alle markierten Tage gespeichert.</p>
-            <p><strong>3. Anderes & Eigener Text:</strong> Unter "Anderes" findest du mehr Icons. Tippe Text in das Feld und bestätige mit <strong>"Enter"</strong>, um individuelle Termine (📝) zu speichern.</p>
-            <p><strong>4. PDF-Dokumente:</strong> Über die Buttons "Schichtplan" und "Liste" kannst du hinterlegte PDFs direkt in der App ansehen.</p>
-            <p><strong>5. Sichern & Laden:</strong> Nutze die goldenen Buttons (💾/📂), um ein Backup deiner Daten als Datei zu erstellen oder wiederherzustellen.</p>
-            <p><strong>6. Löschen:</strong> <br>• <strong>Markierung:</strong> Erscheint bei goldener Auswahl.<br>• <strong>Jahr:</strong> Der rote Button unten leert das komplette Jahr.</p>
-            <p><strong>7. Teilen:</strong> Erstellt eine Zusammenfassung deiner Termine für WhatsApp & Co.</p>
+            <p><strong>1. Zeiträume markieren:</strong> Tippe ein Startdatum und ein Enddatum an. Der Bereich wird <strong>gold markiert</strong>.</p>
+            <p><strong>2. Eintragen:</strong> Uhrzeit & Icon wählen. Gilt für alle markierten Tage.</p>
+            <p><strong>3. Anderes & Eigener Text:</strong> Tippe im Menü "Anderes" deinen Text ein und bestätige mit <strong>"Enter"</strong>. Der Text wird mit einem Notiz-Icon (📝) gespeichert.</p>
+            <p><strong>4. PDFs:</strong> Über die Buttons "Schichtplan" und "Liste" kannst du Dokumente direkt in der App ansehen.</p>
+            <p><strong>5. Sichern & Laden:</strong> Nutze die goldenen Buttons (💾/📂), um Backups deiner Daten zu erstellen oder zu laden.</p>
+            <p><strong>6. Löschen:</strong> Roter Button bei Markierung oder der große rote Button unten für das Jahr.</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
@@ -93,6 +88,7 @@
             <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')" style="font-size:30px; padding:20px;"><span>🚒</span></button>
             <button class="suggest-btn" onclick="quickAdd('🍴', 'Essen')" style="font-size:30px; padding:20px;"><span>🍴</span></button>
         </div>
+        <!-- Eigener Text + Enter -->
         <input type="text" id="customInput" placeholder="Eigener Text + Enter..." 
                style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:10px;"
                onkeydown="if(event.key==='Enter') quickAdd('📝', this.value)">
@@ -233,18 +229,33 @@
     }
 
     function quickAdd(emoji, title) {
-        if(!rangeStart || !title) return;
+        // Logik für eigenen Text ohne Emoji
+        const finalEmoji = emoji || '📝'; 
+        const finalTitle = title || document.getElementById('customInput').value;
+
+        if(!rangeStart || !finalTitle) return;
+
         let s = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeStart) : new Date(rangeEnd)) : new Date(rangeStart);
         let e = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeEnd) : new Date(rangeStart)) : new Date(rangeStart);
+
         while(s <= e) {
             let k = `${s.getDate()}-${s.getMonth()}-${s.getFullYear()}`;
             events[k] = events[k] || {};
-            Object.assign(events[k], {emoji, title, start:document.getElementById('startTime').value, end:document.getElementById('endTime').value});
+            Object.assign(events[k], {
+                emoji: finalEmoji, 
+                title: finalTitle, 
+                start: document.getElementById('startTime').value, 
+                end: document.getElementById('endTime').value
+            });
             s.setDate(s.getDate()+1);
         }
+
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
         document.getElementById('customInput').value = '';
-        rangeStart = rangeEnd = null; toggleCustom(true); renderCalendar(); renderUI();
+        rangeStart = rangeEnd = null; 
+        toggleCustom(true); 
+        renderCalendar(); 
+        renderUI();
     }
 
     function exportData() {
