@@ -13,8 +13,6 @@
 
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
-    <!-- Falls du eine manifest.json hast, lass diese Zeile, sonst lösche sie -->
-    <link rel="manifest" href="manifest.json">
 
     <style>
         :root { 
@@ -50,9 +48,10 @@
         .day.has-event { font-size: 22px; }
 
         .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
-        .backup-btn { background: rgba(243,146,0,0.05); border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 10px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        .backup-btn { background: #1c1c1e; border: 2px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 12px; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
-        
+        .danger-btn { background: #ff453a; color: #fff; padding: 14px; border-radius: 12px; width: 100%; border: none; font-weight: 900; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
+
         .event-card { background: rgba(243,146,0,0.1); padding: 15px; border-radius: 12px; margin: 0 15px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--primary); }
         .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed #555; }
         textarea { width: 100%; background: transparent; border: none; color: white; font-size: 16px; outline: none; min-height: 80px; resize: none; }
@@ -62,22 +61,23 @@
 
 <div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;"><div class="metal-text">Flechtorfer Mühle</div></div>
 
-<!-- ANLEITUNG -->
+<!-- GEKÜRZTE ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); text-transform: uppercase;">Bedienung</h2>
+        <h2 style="color:var(--primary); text-transform: uppercase; margin-bottom:15px;">Anleitung & Funktionen</h2>
         <div class="scroll-area">
-            <p><strong>1. Zeitraum markieren:</strong> Start- und Enddatum tippen (wird gold).</p>
-            <p><strong>2. Eintragen:</strong> Uhrzeit & Icon wählen. Gilt für alle markierten Tage.</p>
-            <p><strong>3. Sichern & Laden:</strong> Nutze die Buttons auf dem Hauptbildschirm (💾/📂), um deine Daten als Datei zu speichern oder wiederherzustellen.</p>
-            <p><strong>4. Löschen:</strong> Roter Button bei Markierung löscht Zeiträume, das "X" löscht Einzeltage.</p>
-            <p><strong>5. App-Modus:</strong> In Edge auf die drei Punkte gehen -> <strong>Apps -> Diese Seite als App installieren</strong>.</p>
+            <p><strong>1. Zeiträume markieren:</strong> Tippe ein Startdatum und ein Enddatum an. Der gesamte Bereich wird <strong>gold markiert</strong>.</p>
+            <p><strong>2. Schichten eintragen:</strong> Wähle die Uhrzeit (➔) und tippe auf ein Icon (z.B. Meeting). Der Eintrag wird für alle markierten Tage gespeichert.</p>
+            <p><strong>3. Anderes & Eigener Text:</strong> Unter "Anderes" findest du mehr Icons. Tippe Text in das Feld und bestätige mit <strong>"Enter"</strong>, um individuelle Termine (📝) zu speichern.</p>
+            <p><strong>4. PDF-Dokumente:</strong> Über die Buttons "Schichtplan" und "Liste" kannst du hinterlegte PDFs direkt in der App ansehen.</p>
+            <p><strong>5. Sichern & Laden:</strong> Nutze die goldenen Buttons (💾/📂), um ein Backup deiner Daten als Datei zu erstellen oder wiederherzustellen.</p>
+            <p><strong>6. Löschen:</strong> <br>• <strong>Markierung:</strong> Erscheint bei goldener Auswahl.<br>• <strong>Jahr:</strong> Der rote Button unten leert das komplette Jahr.</p>
+            <p><strong>7. Teilen:</strong> Erstellt eine Zusammenfassung deiner Termine für WhatsApp & Co.</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
 </div>
 
-<!-- ANDERES OVERLAY -->
 <div id="customArea" onclick="if(event.target===this) toggleCustom()">
     <div class="overlay-content">
         <h3 style="color:var(--primary); margin:0; text-align:center;">WEITERE ICONS</h3>
@@ -87,11 +87,12 @@
             <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')" style="font-size:30px; padding:20px;"><span>🏥</span></button>
             <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')" style="font-size:30px; padding:20px;"><span>🛠️</span></button>
             <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')" style="font-size:30px; padding:20px;"><span>🚒</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🍲', 'Essen')" style="font-size:30px; padding:20px;"><span>🍲</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🍴', 'Essen')" style="font-size:30px; padding:20px;"><span>🍴</span></button>
         </div>
-        <input type="text" id="customInput" placeholder="Eigener Text..." style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:15px;">
-        <button class="action-btn" onclick="quickAdd('📝', document.getElementById('customInput').value)">SPEICHERN</button>
-        <button onclick="toggleCustom()" style="background:none; border:none; color:#777; margin-top:10px; cursor:pointer;">Schließen</button>
+        <input type="text" id="customInput" placeholder="Eigener Text + Enter..." 
+               style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:10px;"
+               onkeydown="if(event.key==='Enter') quickAdd('📝', this.value)">
+        <button class="action-btn" onclick="toggleCustom()" style="margin-top:10px;">SCHLIESSEN</button>
     </div>
 </div>
 
@@ -118,8 +119,8 @@
         <button onclick="viewPDF('liste.pdf', 'LISTE')" class="action-btn">📋 Abwesenheit</button>
         
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-            <button onclick="exportData()" class="backup-btn">💾 DATEN SICHERN</button>
-            <button onclick="document.getElementById('importFile').click()" class="backup-btn">📂 DATEN LADEN</button>
+            <button onclick="exportData()" class="backup-btn">💾 SICHERN</button>
+            <button onclick="document.getElementById('importFile').click()" class="backup-btn">📂 LADEN</button>
             <input type="file" id="importFile" style="display:none" onchange="importData(event)">
         </div>
     </div>
@@ -148,7 +149,7 @@
             <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
             <button class="suggest-btn" onclick="toggleCustom()" style="border:1px solid var(--primary)"><span>⚙️</span>Anderes</button>
         </div>
-        <button onclick="clearYearlyEvents()" style="background:none; border:1px dashed #ff453a; color:#ff453a; padding:10px; border-radius:12px; width:100%; font-size:10px; opacity:0.5;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
+        <button onclick="clearYearlyEvents()" class="danger-btn">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
     </div>
 </div>
 
@@ -228,7 +229,7 @@
     }
 
     function quickAdd(emoji, title) {
-        if(!rangeStart) return;
+        if(!rangeStart || !title) return;
         let s = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeStart) : new Date(rangeEnd)) : new Date(rangeStart);
         let e = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeEnd) : new Date(rangeStart)) : new Date(rangeStart);
         while(s <= e) {
@@ -238,6 +239,7 @@
             s.setDate(s.getDate()+1);
         }
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        document.getElementById('customInput').value = '';
         rangeStart = rangeEnd = null; toggleCustom(true); renderCalendar(); renderUI();
     }
 
@@ -256,7 +258,7 @@
             try {
                 events = JSON.parse(ev.target.result);
                 localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-                renderCalendar(); alert("Daten geladen!");
+                renderCalendar(); alert("Daten erfolgreich geladen!");
             } catch(err) { alert("Fehler!"); }
         };
         reader.readAsText(file);
@@ -275,7 +277,7 @@
 
     function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; }
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
-    function clearYearlyEvents() { if(confirm("Jahr leeren?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
+    function clearYearlyEvents() { if(confirm("Achtung! Soll das gesamte Jahr wirklich geleert werden?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
