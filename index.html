@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
@@ -17,11 +15,9 @@
             --primary: #F39200; 
             --card: rgba(35, 35, 38, 0.95);
         }
-
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
 
-        /* PDF MODAL */
         #pdfViewer { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
         .pdf-container { width: 90vw; height: 160vw; max-height: 82vh; max-width: 420px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
         .pdf-header { background: #1a1a1a; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -29,11 +25,9 @@
         iframe { width: 100%; height: 100%; border: none; }
         .close-pdf { background: var(--gold-gradient); border: none; padding: 6px 15px; border-radius: 6px; font-weight: 900; color: #000; }
 
-        /* HILFE OVERLAY */
         #helpOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 25px; backdrop-filter: blur(10px); }
         .help-card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; max-width: 340px; }
 
-        /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; }
         .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); visibility: hidden; padding-bottom: 40px; }
         .app.unlocked { visibility: visible; }
@@ -74,18 +68,16 @@
 
 <div id="loader"><div class="metal-text">Flechtorfer Mühle</div><div class="loader-ring"></div></div>
 
-<!-- HILFE OVERLAY -->
 <div id="helpOverlay" onclick="toggleHelp(false)">
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); font-style: italic; text-transform: uppercase;">Kurzanleitung</h2>
         <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6; padding-left: 20px;">
             <li><strong>Einzelner Tag:</strong> Datum 1x antippen.</li>
             <li><strong>Zeitraum wählen:</strong> Starttag tippen, dann Endtag tippen (Bereich wird gold).</li>
-            <li><strong>Eintragen:</strong> Button (z.B. Meeting) drücken. Uhrzeit wird mit übernommen.</li>
+            <li><strong>Eintragen:</strong> Button drücken. Uhrzeit wird mit übernommen.</li>
             <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
             <li><strong>Feiertage:</strong> Gesetzliche Feiertage werden automatisch <span style="color:#ff453a; font-weight:bold;">rot</span> markiert.</li>
-            <li><strong>Teilen:</strong> Der 🔗-Button erstellt eine WhatsApp-Liste des Monats (ohne Notizen).</li>
-            <li><strong>Löschen:</strong> Einzelne Events per ✕ im Feld, ganze Jahre über den roten Button unten.</li>
+            <li><strong>Teilen:</strong> Der 🔗-Button erstellt eine WhatsApp-Liste. Gleiche Termine werden als Zeitraum (z.B. 01.10.-09.10.) zusammengefasst.</li>
         </ul>
         <button class="action-btn" style="width:100%; margin: 15px 0 0;" onclick="toggleHelp(false)">ALLES KLAR!</button>
     </div>
@@ -272,20 +264,38 @@
     }
 
     async function shareApp() {
-        const y = currentDate.getFullYear(), m = currentDate.getMonth(), mN = new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(currentDate);
-        let txt = `📅 *Mein Plan: ${mN} ${y}*\n`;
-        let has = false;
-        for (let i = 1; i <= new Date(y, m + 1, 0).getDate(); i++) {
-            const k = `${i}-${m}-${y}`;
-            if (events[k]?.emoji) {
-                has = true;
-                txt += `\n• ${String(i).padStart(2,'0')}.${String(m+1).padStart(2,'0')}. ${events[k].emoji} *${events[k].title}* (${events[k].start}-${events[k].end} Uhr)`;
+        const y = currentDate.getFullYear(), m = currentDate.getMonth();
+        const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(currentDate);
+        let shareText = `📅 *Mein Plan: ${monthName} ${y}*\n`;
+        let hasEvents = false;
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        let i = 1;
+
+        while (i <= daysInMonth) {
+            const key = `${i}-${m}-${y}`;
+            if (events[key] && events[key].emoji) {
+                hasEvents = true;
+                let startDay = i;
+                let currentEv = events[key];
+                while (i < daysInMonth) {
+                    let nextKey = `${i + 1}-${m}-${y}`;
+                    if (events[nextKey] && events[nextKey].emoji === currentEv.emoji && events[nextKey].title === currentEv.title) i++;
+                    else break;
+                }
+                const startStr = String(startDay).padStart(2, '0') + "." + String(m + 1).padStart(2, '0') + ".";
+                const endStr = String(i).padStart(2, '0') + "." + String(m + 1).padStart(2, '0') + ".";
+                let dateRange = (startDay === i) ? startStr : `${startStr} - ${endStr}`;
+                shareText += `\n• ${dateRange} ${currentEv.emoji} *${currentEv.title}*`;
+                if (currentEv.start && currentEv.end) shareText += ` (${currentEv.start}-${currentEv.end} Uhr)`;
             }
+            i++;
         }
-        txt += `\n\n_Gesendet von meinem FM Planer_`;
+        if (!hasEvents) shareText += "\nKeine Schichten eingetragen.";
+        shareText += `\n\n_Gesendet von meinem FM Planer_`;
+
         try {
-            if (navigator.share) await navigator.share({ title: 'FM Planer', text: txt });
-            else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }
+            if (navigator.share) await navigator.share({ title: 'FM Planer', text: shareText });
+            else { await navigator.clipboard.writeText(shareText); alert("Kopiert!"); }
         } catch (e) {}
     }
 
@@ -299,7 +309,6 @@
     }
 
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth() + d); renderCalendar(); }
-
     window.onload = () => { renderCalendar(); setTimeout(() => { document.getElementById('loader').style.opacity = '0'; setTimeout(() => document.getElementById('loader').style.display='none', 600); }, 1200); };
 </script>
 </body>
