@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- DREH-FUNKTION AKTIVIERT: user-scalable=yes -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
     <meta name="apple-mobile-web-app-title" content="FM Planer">
@@ -13,6 +14,14 @@
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="manifest" href="manifest.json">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Error', err));
+            });
+        }
+    </script>
 
     <style>
         :root { 
@@ -46,6 +55,7 @@
             align-items: center; border-bottom: 1px solid rgba(243, 146, 0, 0.3);
         }
 
+        /* DAS GOLDENE X */
         .close-pdf { 
             background: var(--gold-gradient) !important;
             border: none; padding: 8px 15px; border-radius: 8px; 
@@ -80,10 +90,6 @@
         .suggestion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 20px; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
         .suggest-btn span { font-size: 20px; margin-bottom: 4px; }
-        
-        .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(243, 146, 0, 0.05); border-radius: 12px; border: 1px dashed var(--primary); }
-        .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; min-height: 60px; resize: none; font-family: inherit; }
-        .event-card { background: #1c1c1e; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -92,17 +98,15 @@
     <div class="metal-text">Flechtorfer Mühle</div>
 </div>
 
-<!-- HILFE OVERLAY -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); text-transform: uppercase; font-style: italic;">Kurzanleitung</h2>
         <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.5; padding-left: 20px;">
             <li><strong>Tag wählen:</strong> Datum 1x antippen.</li>
-            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird <span style="color:var(--primary)">gold</span>).</li>
-            <li><strong>Eintragen:</strong> Button wählen. Uhrzeit wird mit übernommen.</li>
+            <li><strong>Zeitraum:</strong> Start + Ende tippen (wird <span style="color:var(--primary)">gold</span>).</li>
             <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
-            <li><strong>Feiertage:</strong> Gesetzlich <span style="color:#ff453a; font-weight:bold;">ROT</span> markiert.</li>
-            <li><strong>Teilen:</strong> WhatsApp-Liste mit automatischer Zeitraum-Bündelung.</li>
+            <li><strong>Feiertage:</strong> Automatisch <span style="color:#ff453a; font-weight:bold;">ROT</span> markiert.</li>
+            <li><strong>Teilen:</strong> Erstellt WhatsApp-Liste mit automatischer Bündelung (z.B. 01.-09.10.).</li>
         </ul>
         <button class="action-btn" style="width:100%; margin-top:15px" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
     </div>
@@ -114,9 +118,7 @@
             <span id="pdfTitle" style="font-weight: 900; color: var(--primary); font-size: 12px; text-transform: uppercase;">Dokument</span>
             <button class="close-pdf" onclick="closePDF()">X</button>
         </div>
-        <div class="pdf-frame-container" id="pdfFrameBox">
-            <!-- PDF wird hier dynamisch geladen -->
-        </div>
+        <div class="pdf-frame-container" id="pdfFrameBox"></div>
     </div>
 </div>
 
@@ -144,9 +146,9 @@
 
         <div style="padding:20px; background:#0a0a0a; border-radius:25px 25px 0 0; border-top:1px solid #333;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <input type="time" id="startTime" value="06:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px; font-family:monospace;">
+                <input type="time" id="startTime" value="06:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
                 <span style="color:var(--primary)">➔</span>
-                <input type="time" id="endTime" value="14:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px; font-family:monospace;">
+                <input type="time" id="endTime" value="14:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
             </div>
             <div class="suggestion-grid">
                 <button class="suggest-btn" onclick="quickAdd('💼', 'Meeting')"><span>💼</span>Meeting</button>
@@ -190,16 +192,13 @@
         const title = document.getElementById('pdfTitle');
         const viewer = document.getElementById('pdfViewer');
         title.innerText = t;
-
-        // Lokale Einbettung für Android & iOS (ohne externe Server)
+        // Lokaler Fallback für Android & iOS
         frameBox.innerHTML = `
             <object data="${u}" type="application/pdf" width="100%" height="100%">
                 <div style="padding:40px; text-align:center; color:black;">
-                    PDF kann nicht direkt angezeigt werden.<br><br>
                     <a href="${u}" target="_blank" style="background:var(--gold-gradient); padding:10px 20px; border-radius:8px; color:black; font-weight:bold; text-decoration:none;">PDF ÖFFNEN</a>
                 </div>
             </object>`;
-
         viewer.style.display = 'flex';
     }
 
@@ -219,13 +218,11 @@
         const y = currentDate.getFullYear(), m = currentDate.getMonth();
         document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentDate);
         document.getElementById('delYear').innerText = y;
-
         const easter = getEaster(y);
         const holi = { [`1-0-${y}`]:1, [`1-4-${y}`]:1, [`3-9-${y}`]:1, [`31-9-${y}`]:1, [`25-11-${y}`]:1, [`26-11-${y}`]:1 };
         const addH = (d) => holi[`${d.getDate()}-${d.getMonth()}-${d.getFullYear()}`] = 1;
         addH(new Date(easter.getTime()-2*86400000)); addH(new Date(easter.getTime()+86400000));
         addH(new Date(easter.getTime()+39*86400000)); addH(new Date(easter.getTime()+50*86400000));
-
         let firstDay = (new Date(y, m, 1).getDay()+6)%7;
         for (let i=0; i<firstDay; i++) cal.appendChild(document.createElement('div'));
         for (let i=1; i<=new Date(y, m+1, 0).getDate(); i++) {
