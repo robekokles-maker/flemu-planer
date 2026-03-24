@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & Mobile Optimierung -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FM Planer">
@@ -21,7 +20,6 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow-x: hidden; }
 
-        /* OVERLAYS */
         #pdfViewer, #helpOverlay, #customArea { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
             z-index: 20000; display: none; align-items: center; 
@@ -37,7 +35,6 @@
         }
         .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; max-height: 60vh; }
 
-        /* CALENDAR */
         .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
@@ -48,11 +45,10 @@
         .day.today { border: 2px solid #fff; }
         .day.has-event { font-size: 22px; }
 
-        /* BUTTONS */
         .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
+        .backup-btn { background: rgba(243,146,0,0.1); border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 10px; font-weight: bold; font-size: 11px; cursor: pointer; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
         .large-icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
-        .large-icon-grid .suggest-btn { font-size: 30px; padding: 20px; }
         
         .event-card { background: rgba(243,146,0,0.1); padding: 15px; border-radius: 12px; margin: 0 15px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--primary); }
         .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed #555; }
@@ -63,47 +59,37 @@
 
 <div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;"><div class="metal-text">Flechtorfer Mühle</div></div>
 
-<!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); text-transform: uppercase;">Bedienung</h2>
         <div class="scroll-area">
-            <p><strong>1. Zeitraum markieren:</strong> Tippe Start- und Enddatum an. Der Bereich wird <strong>gold</strong>.</p>
-            <p><strong>2. Eintragen:</strong> Wähle Uhrzeit & Icon. Der Termin gilt für alle markierten Tage.</p>
-            <p><strong>3. Anderes & Backup:</strong> Unter "Anderes" findest du weitere Icons, freien Text und die <strong>Datensicherung</strong>.</p>
-            <p><strong>4. Löschen:</strong> <br>• <strong>Bereich:</strong> Roter Button erscheint bei Markierung.<br>• <strong>Tag:</strong> Tag antippen & "X" nutzen.<br>• <strong>Jahr:</strong> Button ganz unten leert das Jahr.</p>
-            <p><strong>5. Als App nutzen (Wichtig):</strong> Öffne Safari (iOS) -> Teilen -> <strong>Zum Home-Bildschirm</strong> oder Chrome (Android) -> <strong>App installieren</strong>. Dies schützt deine Daten besser!</p>
+            <p><strong>1. Zeitraum markieren:</strong> Start- und Enddatum tippen (wird gold).</p>
+            <p><strong>2. Eintragen:</strong> Uhrzeit & Icon wählen. Gilt für alle markierten Tage.</p>
+            <p><strong>3. Sichern & Laden:</strong> Nutze die Buttons auf dem Hauptbildschirm, um deine Daten als Datei zu speichern oder wiederherzustellen.</p>
+            <p><strong>4. Löschen:</strong> Roter Button bei Markierung oder "X" am Einzeltag.</p>
+            <p><strong>5. App-Modus:</strong> Safari (Teilen -> Zum Home-Bildschirm) schützt deine Daten vor Browser-Reinigung.</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
 </div>
 
-<!-- ANDERES OVERLAY -->
 <div id="customArea" onclick="if(event.target===this) toggleCustom()">
     <div class="overlay-content">
-        <h3 style="color:var(--primary); margin:0; text-align:center;">OPTIONEN & BACKUP</h3>
+        <h3 style="color:var(--primary); margin:0; text-align:center;">WEITERE ICONS</h3>
         <div class="large-icon-grid">
-            <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')"><span>🛠️</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🍕', 'Essen')"><span>🍕</span></button>
-            <button class="suggest-btn" onclick="quickAdd('☀️', 'Frei')"><span>☀️</span></button>
+            <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')" style="font-size:30px; padding:20px;"><span>✈️</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')" style="font-size:30px; padding:20px;"><span>🌴</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')" style="font-size:30px; padding:20px;"><span>🏥</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')" style="font-size:30px; padding:20px;"><span>🛠️</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')" style="font-size:30px; padding:20px;"><span>🚒</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🍲', 'Essen mit Freunden')" style="font-size:30px; padding:20px;"><span>🍲</span></button>
         </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-            <button onclick="exportData()" style="background:#222; color:var(--primary); border:1px solid var(--primary); padding:10px; border-radius:10px; font-weight:bold; font-size:11px;">💾 DATEN SICHERN</button>
-            <button onclick="document.getElementById('importFile').click()" style="background:#222; color:var(--primary); border:1px solid var(--primary); padding:10px; border-radius:10px; font-weight:bold; font-size:11px;">📂 DATEN LADEN</button>
-            <input type="file" id="importFile" style="display:none" onchange="importData(event)">
-        </div>
-
         <input type="text" id="customInput" placeholder="Eigener Text..." style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:15px;">
         <button class="action-btn" onclick="quickAdd('📝', document.getElementById('customInput').value)">SPEICHERN</button>
         <button onclick="toggleCustom()" style="background:none; border:none; color:#777; margin-top:10px; cursor:pointer;">Schließen</button>
     </div>
 </div>
 
-<!-- PDF VIEWER -->
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container" style="height:80vh;">
         <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #333;">
@@ -125,6 +111,13 @@
     <div style="padding:0 15px;">
         <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan</button>
         <button onclick="viewPDF('liste.pdf', 'LISTE')" class="action-btn">📋 Abwesenheit</button>
+        
+        <!-- NEUE BACKUP BUTTONS AUF DEM HOME SCREEN -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+            <button onclick="exportData()" class="backup-btn">💾 DATEN SICHERN</button>
+            <button onclick="document.getElementById('importFile').click()" class="backup-btn">📂 DATEN LADEN</button>
+            <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+        </div>
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
@@ -178,16 +171,13 @@
         const y = currentDate.getFullYear(), m = currentDate.getMonth();
         document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentDate);
         document.getElementById('delYear').innerText = y;
-
         const easter = getEaster(y);
         const holi = { [`1-0-${y}`]:1, [`1-4-${y}`]:1, [`3-9-${y}`]:1, [`31-9-${y}`]:1, [`25-11-${y}`]:1, [`26-11-${y}`]:1 };
         const addH = (d) => holi[`${d.getDate()}-${d.getMonth()}-${d.getFullYear()}`] = 1;
         addH(new Date(easter.getTime()-2*86400000)); addH(new Date(easter.getTime()+86400000));
         addH(new Date(easter.getTime()+39*86400000)); addH(new Date(easter.getTime()+50*86400000));
-
         let first = (new Date(y, m, 1).getDay()+6)%7;
         for (let i=0; i<first; i++) cal.appendChild(document.createElement('div'));
-
         for (let i=1; i<=new Date(y, m+1, 0).getDate(); i++) {
             const k=`${i}-${m}-${y}`, loop=new Date(y, m, i), d=document.createElement('div');
             d.className = 'day';
@@ -200,7 +190,6 @@
             if (i===realToday.getDate() && m===realToday.getMonth() && y===realToday.getFullYear()) d.classList.add('today');
             if (events[k]?.emoji) { d.classList.add('has-event'); d.innerHTML=`<span style="position:absolute; top:2px; left:4px; font-size:8px; color:var(--primary)">${i}</span>${events[k].emoji}`; }
             else { d.innerHTML=i; }
-
             d.onclick = () => {
                 if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart=new Date(loop); rangeEnd=null; }
                 else { rangeEnd=new Date(loop); }
@@ -214,7 +203,6 @@
         const evC=document.getElementById('eventContainer'), ntC=document.getElementById('notesContainer');
         evC.innerHTML=''; ntC.innerHTML=''; if(!rangeStart) return;
         let k=`${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-
         if (rangeStart && rangeEnd) {
             evC.innerHTML = `<button onclick="deleteRange()" style="background:rgba(255,69,58,0.2); border:1px solid #ff453a; color:#ff453a; margin:0 15px 15px; padding:12px; border-radius:12px; width:calc(100% - 30px); font-weight:800; cursor:pointer;">🗑️ ZEITRAUM LÖSCHEN</button>`;
         } else if(events[k]?.emoji) {
@@ -258,12 +246,14 @@
     }
 
     function importData(e) {
-        const file = e.target.files[0]; if(!file) return;
+        const file = e.target.files; if(!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            events = JSON.parse(ev.target.result);
-            localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-            renderCalendar(); alert("Daten geladen!"); toggleCustom(true);
+            try {
+                events = JSON.parse(ev.target.result);
+                localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+                renderCalendar(); alert("Daten erfolgreich geladen!");
+            } catch(err) { alert("Fehler beim Laden!"); }
         };
         reader.readAsText(file);
     }
