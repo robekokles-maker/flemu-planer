@@ -4,16 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
-    
-    <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F39200">
-
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="manifest" href="manifest.json">
-
     <style>
         :root { 
             --gold-gradient: linear-gradient(90deg, #b36b00 0%, #f9d976 25%, #f39200 50%, #f9d976 75%, #b36b00 100%);
@@ -21,146 +14,134 @@
             --card: rgba(35, 35, 38, 0.95);
         }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; }
+        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow-x: hidden; }
 
-        /* PDF MODAL DESIGN */
-        #pdfViewer, #helpOverlay { 
+        /* OVERLAYS */
+        #pdfViewer, #helpOverlay, #customArea { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
             z-index: 20000; display: none; align-items: center; 
             justify-content: center; padding: 20px; backdrop-filter: blur(15px); 
         }
+        #customArea { display: none; flex-direction: column; }
 
-        .pdf-container, .help-card { 
-            width: 95vw; height: 85vh; max-width: 450px; 
-            background: #1a1a1a; border: 3px solid var(--primary); 
-            border-radius: 20px; display: flex; flex-direction: column; 
-            overflow: hidden; box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); 
+        .pdf-container, .help-card, .overlay-content { 
+            width: 95vw; max-width: 450px; background: #1a1a1a; 
+            border: 2px solid var(--primary); border-radius: 20px; 
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); padding: 20px;
         }
-        .help-card { height: auto; padding: 25px; text-align: center; }
+        .help-card { max-height: 85vh; }
+        .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; }
 
-        .pdf-header { 
-            background: #1a1a1a; padding: 15px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid rgba(243, 146, 0, 0.3);
-        }
-
-        .pdf-title-text { font-weight: 900; color: var(--primary); text-transform: uppercase; font-size: 12px; }
-
-        .close-pdf { 
-            background: var(--gold-gradient) !important;
-            border: none; padding: 8px 15px; border-radius: 8px; 
-            font-weight: 900; color: #000 !important; cursor: pointer;
-        }
-
-        .pdf-frame-container { 
-            flex: 1; width: 100%; height: 100%; background: #fff; 
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-        }
-
-        /* FALLBACK BUTTON STYLING */
-        .pdf-fallback-btn {
-            background: var(--gold-gradient); padding: 15px 25px;
-            border-radius: 12px; color: #000; font-weight: 900;
-            text-decoration: none; text-transform: uppercase;
-        }
-
-        /* APP STYLES */
-        .app-container { height: 100vh; overflow-y: auto; }
-        .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); visibility: hidden; padding-bottom: 40px; }
-        .app.unlocked { visibility: visible; }
+        /* CALENDAR */
+        .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
-
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
         .day-label { text-align: center; font-size: 10px; font-weight: bold; color: var(--primary); }
         .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
-        .day.selected-range { background: rgba(243, 146, 0, 0.4) !important; outline: 1px solid var(--primary); }
+        .day.selected-range { background: rgba(243, 146, 0, 0.5) !important; outline: 2px solid var(--primary); }
         .day.holiday { color: #ff453a !important; font-weight: 900; }
-        .day.has-event { font-size: 22px; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        
-        .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(243, 146, 0, 0.05); border-radius: 12px; border: 1px dashed var(--primary); }
-        .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 16px; outline: none; min-height: 120px; resize: none; font-family: inherit; }
+        .day.today { border: 2px solid #fff; }
+        .day.has-event { font-size: 22px; }
 
-        .action-btn { background: var(--gold-gradient); margin: 0 15px 15px; padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: calc(100% - 30px); display: block; }
+        /* BUTTONS & INPUTS */
+        .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
+        .large-icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .large-icon-grid .suggest-btn { font-size: 30px; padding: 20px; }
+        
+        .event-card { background: rgba(243,146,0,0.1); padding: 15px; border-radius: 12px; margin: 0 15px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--primary); }
+        .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed #555; }
+        textarea { width: 100%; background: transparent; border: none; color: white; font-size: 16px; outline: none; min-height: 80px; resize: none; }
     </style>
 </head>
 <body>
 
 <div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;"><div class="metal-text">Flechtorfer Mühle</div></div>
 
-<!-- HILFE -->
+<!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); text-transform: uppercase;">Kurzanleitung</h2>
-        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6;">
-            <li><strong>Zeitraum markieren:</strong> Start + Ende tippen (wird gold).</li>
-            <li><strong>Eintragen:</strong> Button wählen. Zeiten werden beim Teilen gebündelt.</li>
-            <li><strong>Notizen:</strong> Großes Feld unten für tägliche Infos.</li>
-        </ul>
-        <button class="action-btn" style="width:100%" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
+        <h2 style="color:var(--primary); text-transform: uppercase;">Anleitung</h2>
+        <div class="scroll-area">
+            <p><strong>1. Zeitraum markieren:</strong> Tippe Start- und Enddatum an. Der Bereich leuchtet <strong>gold</strong>.</p>
+            <p><strong>2. Eintragen:</strong> Wähle Uhrzeit & Icon. Der Termin wird für den gesamten Zeitraum gespeichert.</p>
+            <p><strong>3. Anderes (Overlay):</strong> Unter "Anderes" findest du mehr Icons und ein Feld für <strong>eigenen Text</strong>.</p>
+            <p><strong>4. Löschen:</strong> <br>• <strong>Bereich:</strong> Roter Button erscheint bei Markierung.<br>• <strong>Tag:</strong> Tag antippen & "X" nutzen.<br>• <strong>Jahr:</strong> Button ganz unten leert das Jahr.</p>
+            <p><strong>5. Notizen:</strong> Textfeld unten speichert Infos pro Tag automatisch.</p>
+            <p><strong>6. PDF & Teilen:</strong> Pläne einsehen oder Monats-Zusammenfassung an WhatsApp senden.</p>
+        </div>
+        <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
+    </div>
+</div>
+
+<!-- ANDERES OVERLAY -->
+<div id="customArea" onclick="if(event.target===this) toggleCustom()">
+    <div class="overlay-content">
+        <h3 style="color:var(--primary); margin:0; text-align:center;">ZUSÄTZLICHE ICONS</h3>
+        <div class="large-icon-grid">
+            <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuer')"><span>🚒</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')"><span>🛠️</span></button>
+            <button class="suggest-btn" onclick="quickAdd('🍕', 'Essen')"><span>🍕</span></button>
+        </div>
+        <input type="text" id="customInput" placeholder="Eigener Text..." style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:15px;">
+        <button class="action-btn" onclick="quickAdd('📝', document.getElementById('customInput').value)">SPEICHERN</button>
+        <button onclick="toggleCustom()" style="background:none; border:none; color:#777; margin-top:10px; cursor:pointer;">Schließen</button>
     </div>
 </div>
 
 <!-- PDF VIEWER -->
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
-    <div class="pdf-container">
-        <div class="pdf-header">
-            <span id="pdfTitle" class="pdf-title-text">Dokument</span>
-            <button class="close-pdf" onclick="closePDF()">X</button>
+    <div class="pdf-container" style="height:80vh;">
+        <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #333;">
+            <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">PDF</span>
+            <button onclick="closePDF()" style="background:var(--primary); border:none; border-radius:5px; padding:5px 10px; font-weight:bold;">X</button>
         </div>
-        <div class="pdf-frame-container" id="pdfFrameBox"></div>
+        <div id="pdfFrameBox" style="flex:1; background:#fff;"></div>
     </div>
 </div>
 
-<div class="app-container">
-    <div class="app" id="mainApp">
-        <div class="metal-text">Flechtorfer Mühle</div>
-        
-        <div style="display:flex; gap:10px; padding:0 15px 15px;">
-            <div style="flex:1; background:rgba(243,146,0,0.1); padding:12px; border-radius:12px; text-align:center; color:var(--primary); font-weight:bold; cursor:pointer;" onclick="document.getElementById('helpOverlay').style.display='flex'">❓ Hilfe</div>
-            <div style="flex:1; background:rgba(243,146,0,0.1); padding:12px; border-radius:12px; text-align:center; color:var(--primary); font-weight:bold; cursor:pointer;" onclick="shareApp()">🔗 Teilen</div>
+<div class="app">
+    <div class="metal-text">Flechtorfer Mühle</div>
+    
+    <div style="display:flex; gap:10px; padding:0 15px 15px;">
+        <div style="flex:1; background:rgba(243,146,0,0.1); padding:12px; border-radius:12px; text-align:center; color:var(--primary); font-weight:bold; cursor:pointer;" onclick="document.getElementById('helpOverlay').style.display='flex'">❓ Hilfe</div>
+        <div style="flex:1; background:rgba(243,146,0,0.1); padding:12px; border-radius:12px; text-align:center; color:var(--primary); font-weight:bold; cursor:pointer;" onclick="shareApp()">🔗 Teilen</div>
+    </div>
+
+    <div style="padding:0 15px;">
+        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan</button>
+        <button onclick="viewPDF('liste.pdf', 'LISTE')" class="action-btn">📋 Abwesenheit</button>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
+        <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
+        <h3 id="monthDisplay" style="color:var(--primary); margin:0;"></h3>
+        <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❯</button>
+    </div>
+
+    <div class="calendar-grid" id="calendar"></div>
+    <div id="eventContainer"></div>
+    <div id="notesContainer"></div>
+
+    <div style="padding:20px; background:#0a0a0a; border-radius:25px 25px 0 0; border-top:1px solid #333;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <input type="time" id="startTime" value="06:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
+            <span style="color:var(--primary); font-size:24px;">➔</span>
+            <input type="time" id="endTime" value="14:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
         </div>
-
-        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan einsehen</button>
-        <button onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')" class="action-btn">📋 Abwesenheitsliste</button>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
-            <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
-            <h3 id="monthDisplay" style="color:var(--primary); margin:0;"></h3>
-            <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❯</button>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:20px;">
+            <button class="suggest-btn" onclick="quickAdd('💼', 'Meeting')"><span>💼</span>Meeting</button>
+            <button class="suggest-btn" onclick="quickAdd('⚽', 'Fußball')"><span>⚽</span>Fußball</button>
+            <button class="suggest-btn" onclick="quickAdd('🏊', 'Schwimmen')"><span>🏊</span>Schwimmen</button>
+            <button class="suggest-btn" onclick="quickAdd('🧘', 'Relax')"><span>🧘</span>Relax</button>
+            <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
+            <button class="suggest-btn" onclick="toggleCustom()" style="border:1px solid var(--primary)"><span>⚙️</span>Anderes</button>
         </div>
-
-        <div class="calendar-grid" id="calendar"></div>
-        <div id="eventContainer"></div>
-        <div id="notesContainer"></div>
-
-        <div style="padding:20px; background:#0a0a0a; border-radius:25px 25px 0 0; border-top:1px solid #333;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <input type="time" id="startTime" value="06:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
-                <span style="color:var(--primary); font-size:24px;">➔</span>
-                <input type="time" id="endTime" value="14:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px;">
-            </div>
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
-                <button class="suggest-btn" onclick="quickAdd('💼', 'Meeting')"><span style="font-size:20px;">💼</span><br>Meeting</button>
-                <button class="suggest-btn" onclick="quickAdd('⚽', 'Fußball')"><span style="font-size:20px;">⚽</span><br>Fußball</button>
-                <button class="suggest-btn" onclick="quickAdd('🏊', 'Schwimmen')"><span style="font-size:20px;">🏊</span><br>Schwimmen</button>
-                <button class="suggest-btn" onclick="quickAdd('🧘', 'Relax')"><span style="font-size:20px;">🧘</span><br>Relax</button>
-                <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span style="font-size:20px;">🥳</span><br>Party</button>
-                <button class="suggest-btn" onclick="toggleCustom()"><span style="font-size:20px;">⚙️</span><br>Anderes</button>
-            </div>
-            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px; font-weight:800;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
-            
-            <div id="customArea" style="display:none; margin-top:15px; padding:10px; background:rgba(253,217,118,0.05); border-radius:12px; border:1px solid var(--primary);">
-                <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:10px;">
-                    <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuer')"><span>🚒</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')"><span>🛠️</span></button>
-                </div>
-                <input type="text" id="customInput" placeholder="Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px;">
-            </div>
-        </div>
+        <button onclick="clearYearlyEvents()" style="background:none; border:1px dashed #ff453a; color:#ff453a; padding:10px; border-radius:12px; width:100%; font-size:10px; opacity:0.5;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
     </div>
 </div>
 
@@ -170,8 +151,7 @@
         if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
         else location.reload();
     }
-    document.getElementById('mainApp').classList.add('unlocked');
-    setTimeout(() => document.getElementById('loader').style.display='none', 1000);
+    setTimeout(() => document.getElementById('loader').style.display='none', 800);
 
     let currentDate = new Date(), realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
@@ -197,9 +177,10 @@
 
         let first = (new Date(y, m, 1).getDay()+6)%7;
         for (let i=0; i<first; i++) cal.appendChild(document.createElement('div'));
+
         for (let i=1; i<=new Date(y, m+1, 0).getDate(); i++) {
             const k=`${i}-${m}-${y}`, loop=new Date(y, m, i), d=document.createElement('div');
-            d.className = 'day' + (loop.getDay()%6===0 ? ' weekend':'');
+            d.className = 'day';
             if (holi[k]) d.classList.add('holiday');
             if (rangeStart && !rangeEnd && rangeStart.getTime()===loop.getTime()) d.classList.add('selected-range');
             if (rangeStart && rangeEnd) {
@@ -207,11 +188,13 @@
                 if (loop>=s && loop<=e) d.classList.add('selected-range');
             }
             if (i===realToday.getDate() && m===realToday.getMonth() && y===realToday.getFullYear()) d.classList.add('today');
-            if (events[k]?.emoji) { d.classList.add('has-event'); d.innerHTML=`<span style="position:absolute; top:3px; left:4px; font-size:8px; color:var(--primary)">${i}</span>${events[k].emoji}`; }
-            else { d.innerHTML=i; if (events[k]?.note) d.classList.add('has-note'); }
+            if (events[k]?.emoji) { d.classList.add('has-event'); d.innerHTML=`<span style="position:absolute; top:2px; left:4px; font-size:8px; color:var(--primary)">${i}</span>${events[k].emoji}`; }
+            else { d.innerHTML=i; }
+
             d.onclick = () => {
-                if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart=loop; rangeEnd=null; }
-                else rangeEnd=loop; renderCalendar(); renderUI();
+                if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart=new Date(loop); rangeEnd=null; }
+                else { rangeEnd=new Date(loop); }
+                renderCalendar(); renderUI();
             };
             cal.appendChild(d);
         }
@@ -221,37 +204,55 @@
         const evC=document.getElementById('eventContainer'), ntC=document.getElementById('notesContainer');
         evC.innerHTML=''; ntC.innerHTML=''; if(!rangeStart) return;
         let k=`${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-        if(events[k]?.emoji) evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start}-${events[k].end} Uhr</small></div><button onclick="events['${k}'].emoji=null; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:22px; cursor:pointer;">✕</button></div>`;
-        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
+
+        if (rangeStart && rangeEnd) {
+            evC.innerHTML = `<button onclick="deleteRange()" style="background:rgba(255,69,58,0.2); border:1px solid #ff453a; color:#ff453a; margin:0 15px 15px; padding:12px; border-radius:12px; width:calc(100% - 30px); font-weight:800; cursor:pointer;">🗑️ ZEITRAUM LÖSCHEN</button>`;
+        } else if(events[k]?.emoji) {
+            evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small>${events[k].start}-${events[k].end} Uhr</small></div><button onclick="delete events['${k}'].emoji; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:22px;">✕</button></div>`;
+        }
+        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen für diesen Tag..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events));">${events[k]?.note||""}</textarea></div>`;
     }
 
-    function viewPDF(u, t) {
-        const frameBox = document.getElementById('pdfFrameBox');
-        const title = document.getElementById('pdfTitle');
-        const viewer = document.getElementById('pdfViewer');
-        title.innerText = t;
-        frameBox.innerHTML = `
-            <object data="${u}" type="application/pdf" width="100%" height="100%">
-                <div style="text-align:center; padding:20px; width:100%;">
-                    <p style="color:#000; margin-bottom:20px; font-weight:bold;">Vorschau nicht möglich</p>
-                    <a href="${u}" target="_blank" class="pdf-fallback-btn">PDF Öffnen</a>
-                </div>
-            </object>`;
-        viewer.style.display = 'flex';
+    function deleteRange() {
+        let s = rangeStart < rangeEnd ? new Date(rangeStart) : new Date(rangeEnd);
+        let e = rangeStart < rangeEnd ? new Date(rangeEnd) : new Date(rangeStart);
+        while(s <= e) {
+            let k = `${s.getDate()}-${s.getMonth()}-${s.getFullYear()}`;
+            if(events[k]) { delete events[k].emoji; delete events[k].title; }
+            s.setDate(s.getDate()+1);
+        }
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        rangeStart = rangeEnd = null; renderCalendar(); renderUI();
     }
-
-    function closePDF() { document.getElementById('pdfViewer').style.display='none'; document.getElementById('pdfFrameBox').innerHTML=''; }
 
     function quickAdd(emoji, title) {
         if(!rangeStart) return;
-        let sD=rangeEnd?(rangeStart<rangeEnd?rangeStart:rangeEnd):rangeStart, eD=rangeEnd?(rangeStart<rangeEnd?rangeEnd:rangeStart):rangeStart, t=new Date(sD);
-        while(t<=eD) {
-            let k=`${t.getDate()}-${t.getMonth()}-${t.getFullYear()}`;
-            events[k]=events[k]||{}; Object.assign(events[k], {emoji, title, start:document.getElementById('startTime').value, end:document.getElementById('endTime').value});
-            t.setDate(t.getDate()+1);
+        let s = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeStart) : new Date(rangeEnd)) : new Date(rangeStart);
+        let e = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeEnd) : new Date(rangeStart)) : new Date(rangeStart);
+        while(s <= e) {
+            let k = `${s.getDate()}-${s.getMonth()}-${s.getFullYear()}`;
+            events[k] = events[k] || {};
+            Object.assign(events[k], {emoji, title, start:document.getElementById('startTime').value, end:document.getElementById('endTime').value});
+            s.setDate(s.getDate()+1);
         }
-        localStorage.setItem('fm_pro_v5', JSON.stringify(events)); rangeStart=rangeEnd=null; renderCalendar(); renderUI();
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+        rangeStart = rangeEnd = null; toggleCustom(true); renderCalendar(); renderUI();
     }
+
+    function toggleCustom(forceClose) { 
+        const a = document.getElementById('customArea'); 
+        a.style.display = (forceClose || a.style.display==='flex') ? 'none' : 'flex'; 
+    }
+
+    function viewPDF(u, t) {
+        document.getElementById('pdfTitle').innerText = t;
+        document.getElementById('pdfFrameBox').innerHTML = `<object data="${u}" type="application/pdf" width="100%" height="100%"><div style="padding:20px; text-align:center;"><a href="${u}" target="_blank" class="action-btn">PDF öffnen</a></div></object>`;
+        document.getElementById('pdfViewer').style.display = 'flex';
+    }
+
+    function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; }
+    function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
+    function clearYearlyEvents() { if(confirm("Wirklich alles für "+currentDate.getFullYear()+" löschen?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
@@ -260,22 +261,17 @@
             const k=`${i}-${m}-${y}`;
             if(events[k]?.emoji) {
                 has=true; let start=i, curr=events[k];
-                while(i < new Date(y,m+1,0).getDate() && events[`${i+1}-${m}-${y}`]?.emoji === curr.emoji && events[`${i+1}-${m}-${y}`]?.title === curr.title) i++;
+                while(i < new Date(y,m+1,0).getDate() && events[`${i+1}-${m}-${y}`]?.emoji === curr.emoji) i++;
                 let range = (start===i)?`${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.` : `${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}. - ${String(i).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.`;
-                txt+=`\n• ${range} ${curr.emoji} *${curr.title}* (${curr.start}-${curr.end} Uhr)`;
+                txt+=`\n• ${range} ${curr.emoji} *${curr.title}*`;
             }
             i++;
         }
-        txt+=`\n\n_Gesendet von meinem FM Planer_`;
+        if(!has) return alert("Keine Einträge zum Teilen!");
         try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
     }
-
-    function toggleCustom() { const a=document.getElementById('customArea'); a.style.display=a.style.display==='none'?'block':'none'; }
-    function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
-    function clearYearlyEvents() { if(confirm("LÖSCHEN?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     renderCalendar();
 </script>
 </body>
 </html>
-
