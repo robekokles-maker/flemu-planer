@@ -2,16 +2,32 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen (EXAKT wie in deinem ersten Code) -->
+    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F39200">
+
+    <!-- Icons & Manifest -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Service Worker Registrierung -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('Service Worker registriert!');
+                }).catch(err => {
+                    console.log('Service Worker Fehler:', err);
+                });
+            });
+        }
+    </script>
 
     <style>
         :root { 
@@ -28,7 +44,7 @@
         iframe { width: 100%; height: 60vh; border: none; background: #eee; }
 
         /* APP DESIGN */
-        .app-container { height: 100vh; overflow-y: auto; }
+        .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); visibility: hidden; padding-bottom: 40px; }
         .app.unlocked { visibility: visible; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
@@ -36,7 +52,6 @@
         .widget-row { display: flex; gap: 10px; padding: 0 15px 15px; }
         .info-btn-widget { flex: 1; background: rgba(243, 146, 0, 0.1); border: 1px solid rgba(243, 146, 0, 0.3); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--primary); font-weight: bold; cursor: pointer; }
 
-        /* KALENDER */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
         .day-label { text-align: center; font-size: 10px; font-weight: bold; color: var(--primary); }
         .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
@@ -51,13 +66,14 @@
         .action-btn { background: var(--gold-gradient); margin: 0 15px 15px; padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: calc(100% - 30px); display: block; }
         .input-area { padding: 20px; background: #0a0a0a; border-radius: 25px 25px 0 0; border-top: 1px solid #333; }
         .time-box { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .time-box input { padding: 12px 5px; border-radius: 10px; border: 2px solid #555; background: #1c1c1e; color: #f9d976; width: 45%; text-align: center; font-size: 24px; font-weight: 900; font-family: monospace; }
+        .time-box input { padding: 12px 5px; border-radius: 10px; border: 2px solid #555; background: #1c1c1e; color: #f9d976; width: 45%; text-align: center; font-size: 24px; font-weight: 900; font-family: monospace; outline: none; }
+        
         .suggestion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
+        .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .suggest-btn span { font-size: 20px; margin-bottom: 4px; }
 
         .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(243, 146, 0, 0.05); border-radius: 12px; border: 1px dashed var(--primary); }
-        .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; min-height: 60px; resize: none; }
+        .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; min-height: 60px; resize: none; font-family: inherit; }
         .event-card { background: #1c1c1e; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
 
         #loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 30000; }
@@ -67,14 +83,15 @@
 
 <div id="loader"><div class="metal-text">Flechtorfer Mühle</div></div>
 
-<!-- HILFE -->
+<!-- HILFE OVERLAY -->
 <div id="helpOverlay" onclick="toggleHelp(false)">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary)">Kurzanleitung</h2>
+        <h2 style="color:var(--primary); font-style: italic;">Kurzanleitung</h2>
         <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6;">
-            <li><strong>Zeitraum:</strong> Start + Ende tippen (wird gold).</li>
-            <li><strong>Eintragen:</strong> Button wählen. Gleiche Termine werden beim Teilen als Block (01.-09.) zusammengefasst.</li>
+            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird gold).</li>
+            <li><strong>Eintragen:</strong> Button wählen. Gleiche Termine werden beim Teilen als Block (z.B. 01.-09.) zusammengefasst.</li>
             <li><strong>Feiertage:</strong> Automatisch <span style="color:#ff453a">ROT</span> markiert.</li>
+            <li><strong>Teilen:</strong> Erstellt WhatsApp-Liste ohne Notizen.</li>
         </ul>
         <button class="action-btn" style="width:100%" onclick="toggleHelp(false)">Verstanden!</button>
     </div>
@@ -83,8 +100,8 @@
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container">
         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-            <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">DOC</span>
-            <button onclick="closePDF()" style="color:white; background:none; border:none; font-weight:bold;">X</button>
+            <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">PDF</span>
+            <button onclick="closePDF()" style="color:white; background:none; border:none; font-weight:bold; font-size:18px;">✕</button>
         </div>
         <iframe id="pdfFrame" src=""></iframe>
     </div>
@@ -99,13 +116,13 @@
             <div class="info-btn-widget" onclick="shareApp()">🔗 Teilen</div>
         </div>
 
-        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan</button>
+        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan einsehen</button>
         <button onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')" class="action-btn">📋 Abwesenheitsliste</button>
 
         <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
-            <button onclick="changeMonth(-1)" style="color:var(--primary); background:none; border:none; font-size:22px;">❮</button>
+            <button onclick="changeMonth(-1)" style="color:var(--primary); background:none; border:none; font-size:22px; cursor:pointer;">❮</button>
             <h3 id="monthDisplay" style="color:var(--primary); margin:0;"></h3>
-            <button onclick="changeMonth(1)" style="color:var(--primary); background:none; border:none; font-size:22px;">❯</button>
+            <button onclick="changeMonth(1)" style="color:var(--primary); background:none; border:none; font-size:22px; cursor:pointer;">❯</button>
         </div>
 
         <div class="calendar-grid" id="calendar"></div>
@@ -126,17 +143,17 @@
                 <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
                 <button class="suggest-btn" onclick="toggleCustom()"><span>⚙️</span>Anderes</button>
             </div>
-            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
+            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px; cursor:pointer; font-weight:800;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
             
             <div id="customArea" style="display:none; margin-top:15px; padding:10px; background:rgba(253,217,118,0.05); border-radius:12px; border:1px solid var(--primary);">
                 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:10px;">
-                    <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
+                    <button class="suggest-btn" onclick="quickAdd('✈️', 'Flugzeug')"><span>✈️</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')"><span>🚒</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
+                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt/Krank')"><span>🏥</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🛠️', 'Reparatur')"><span>🛠️</span></button>
                 </div>
-                <input type="text" id="customInput" placeholder="Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px;">
+                <input type="text" id="customInput" placeholder="Eigener Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px; outline:none;">
             </div>
         </div>
     </div>
@@ -145,12 +162,12 @@
 <script>
     const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
-        let p = prompt("Passwort:");
+        let p = prompt("Bitte Passwort eingeben:");
         if (p === PASS) localStorage.setItem('fm_access', 'true');
         else location.reload();
     }
     document.getElementById('mainApp').classList.add('unlocked');
-    setTimeout(() => document.getElementById('loader').style.display='none', 1000);
+    setTimeout(() => { document.getElementById('loader').style.opacity='0'; setTimeout(()=>document.getElementById('loader').style.display='none', 600); }, 1000);
 
     let currentDate = new Date(), realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
@@ -185,7 +202,7 @@
                 let s = rangeStart<rangeEnd?rangeStart:rangeEnd, e=rangeStart<rangeEnd?rangeEnd:rangeStart;
                 if (loop>=s && loop<=e) d.classList.add('selected-range');
             }
-            if (i===realToday.getDate() && m===realToday.getMonth() && y===y===realToday.getFullYear()) d.classList.add('today');
+            if (i===realToday.getDate() && m===realToday.getMonth() && y===realToday.getFullYear()) d.classList.add('today');
             if (events[k]?.emoji) { d.classList.add('has-event'); d.innerHTML=`<span class="day-num">${i}</span>${events[k].emoji}`; }
             else { d.innerHTML=i; if (events[k]?.note) d.classList.add('has-note'); }
             d.onclick = () => {
@@ -200,8 +217,8 @@
         const evC=document.getElementById('eventContainer'), ntC=document.getElementById('notesContainer');
         evC.innerHTML=''; ntC.innerHTML=''; if(!rangeStart) return;
         let k=`${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-        if(events[k]?.emoji) evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start}-${events[k].end} Uhr</small></div><button onclick="events['${k}'].emoji=null; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:20px;">✕</button></div>`;
-        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
+        if(events[k]?.emoji) evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start}-${events[k].end} Uhr</small></div><button onclick="events['${k}'].emoji=null; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:22px; cursor:pointer;">✕</button></div>`;
+        ntC.innerHTML=`<div class="notes-area"><small style="color:var(--primary); font-weight:bold;">NOTIZEN</small><textarea placeholder="Hier tippen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
     }
 
     function quickAdd(emoji, title) {
@@ -213,11 +230,12 @@
             t.setDate(t.getDate()+1);
         }
         localStorage.setItem('fm_pro_v5', JSON.stringify(events)); rangeStart=rangeEnd=null; renderCalendar(); renderUI();
+        document.getElementById('customArea').style.display='none';
     }
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
-        let txt=`📅 *Plan: ${mN} ${y}*\n`, i=1, has=false;
+        let txt=`📅 *Mein Plan: ${mN} ${y}*\n`, i=1, has=false;
         while(i<=new Date(y,m+1,0).getDate()) {
             const k=`${i}-${m}-${y}`;
             if(events[k]?.emoji) {
@@ -229,15 +247,15 @@
             i++;
         }
         txt+=`\n\n_Gesendet von meinem FM Planer_`;
-        try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
+        try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Plan kopiert!"); }} catch(e){}
     }
 
-    function toggleCustom() { const a=document.getElementById('customArea'); a.style.display=a.style.display==='none'?'block':'none'; }
+    function toggleCustom() { const a=document.getElementById('customArea'), i=document.getElementById('customInput'); a.style.display=a.style.display==='none'?'block':'none'; if(a.style.display==='block') { i.focus(); i.onkeydown=(e)=>{if(e.key==='Enter'&&i.value.trim()!=="")quickAdd('📍',i.value);};}}
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
     function toggleHelp(s) { document.getElementById('helpOverlay').style.display=s?'flex':'none'; }
     function viewPDF(u,t) { document.getElementById('pdfViewer').style.display='flex'; document.getElementById('pdfFrame').src=u; document.getElementById('pdfTitle').innerText=t; }
     function closePDF() { document.getElementById('pdfViewer').style.display='none'; }
-    function clearYearlyEvents() { if(confirm("ALLES LÖSCHEN?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
+    function clearYearlyEvents() { if(confirm("Möchtest du wirklich alle Einträge für dieses Jahr löschen?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     renderCalendar();
 </script>
