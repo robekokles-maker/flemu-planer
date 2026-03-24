@@ -31,7 +31,7 @@
 
         /* HILFE OVERLAY */
         #helpOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 25px; backdrop-filter: blur(10px); }
-        .help-card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; max-width: 320px; }
+        .help-card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; max-width: 340px; }
 
         /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; }
@@ -74,16 +74,20 @@
 
 <div id="loader"><div class="metal-text">Flechtorfer Mühle</div><div class="loader-ring"></div></div>
 
+<!-- HILFE OVERLAY -->
 <div id="helpOverlay" onclick="toggleHelp(false)">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary)">Kurzanleitung</h2>
-        <ul style="text-align:left; font-size:13px; color:#ccc">
-            <li>Tag wählen oder Zeitraum (Start + Ende) markieren.</li>
-            <li>Vorschläge antippen zum Eintragen.</li>
-            <li>Notizen werden pro Tag automatisch gespeichert.</li>
-            <li>Teilen sendet Monatsplan ohne Notizen.</li>
+        <h2 style="color:var(--primary); font-style: italic; text-transform: uppercase;">Kurzanleitung</h2>
+        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6; padding-left: 20px;">
+            <li><strong>Einzelner Tag:</strong> Datum 1x antippen.</li>
+            <li><strong>Zeitraum wählen:</strong> Starttag tippen, dann Endtag tippen (Bereich wird gold).</li>
+            <li><strong>Eintragen:</strong> Button (z.B. Meeting) drücken. Uhrzeit wird mit übernommen.</li>
+            <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
+            <li><strong>Feiertage:</strong> Gesetzliche Feiertage werden automatisch <span style="color:#ff453a; font-weight:bold;">rot</span> markiert.</li>
+            <li><strong>Teilen:</strong> Der 🔗-Button erstellt eine WhatsApp-Liste des Monats (ohne Notizen).</li>
+            <li><strong>Löschen:</strong> Einzelne Events per ✕ im Feld, ganze Jahre über den roten Button unten.</li>
         </ul>
-        <button class="action-btn" style="width:100%; margin: 15px 0 0;" onclick="toggleHelp(false)">Verstanden!</button>
+        <button class="action-btn" style="width:100%; margin: 15px 0 0;" onclick="toggleHelp(false)">ALLES KLAR!</button>
     </div>
 </div>
 
@@ -106,7 +110,6 @@
             <div class="info-btn-widget" onclick="shareApp()"><span>🔗</span> Teilen</div>
         </div>
 
-        <!-- GOLDENE BUTTONS (OBEN) -->
         <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan einsehen</button>
         <button onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')" class="action-btn">📋 Abwesenheitsliste</button>
 
@@ -156,9 +159,9 @@
 <script>
     const PASSWORT = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
-        let input = prompt("Passwort:");
+        let input = prompt("Bitte Passwort eingeben:");
         if (input === PASSWORT) localStorage.setItem('fm_access', 'true');
-        else { alert("Falsch!"); location.reload(); }
+        else { alert("Falsches Passwort!"); location.reload(); }
     }
     document.getElementById('mainApp').classList.add('unlocked');
 
