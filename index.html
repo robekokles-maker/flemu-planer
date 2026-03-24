@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
+    <!-- PWA Optimierung für Edge, Chrome & Safari -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="theme-color" content="#F39200">
+    
+    <!-- Icons (Müssen im selben Ordner liegen) -->
     <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
 
     <style>
         :root { 
@@ -20,13 +25,12 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow-x: hidden; }
 
+        /* OVERLAYS */
         #pdfViewer, #helpOverlay, #customArea { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
             z-index: 20000; display: none; align-items: center; 
             justify-content: center; padding: 20px; backdrop-filter: blur(15px); 
         }
-        #customArea { display: none; flex-direction: column; }
-
         .pdf-container, .help-card, .overlay-content { 
             width: 95vw; max-width: 450px; background: #1a1a1a; 
             border: 2px solid var(--primary); border-radius: 20px; 
@@ -35,8 +39,10 @@
         }
         .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; max-height: 60vh; }
 
+        /* APP LAYOUT */
         .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
+        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
         .day-label { text-align: center; font-size: 10px; font-weight: bold; color: var(--primary); }
         .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
@@ -45,10 +51,10 @@
         .day.today { border: 2px solid #fff; }
         .day.has-event { font-size: 22px; }
 
+        /* BUTTONS */
         .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
-        .backup-btn { background: rgba(243,146,0,0.1); border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 10px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        .backup-btn { background: rgba(243,146,0,0.05); border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 10px; font-weight: bold; font-size: 11px; cursor: pointer; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
-        .large-icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
         
         .event-card { background: rgba(243,146,0,0.1); padding: 15px; border-radius: 12px; margin: 0 15px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--primary); }
         .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px dashed #555; }
@@ -59,24 +65,26 @@
 
 <div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;"><div class="metal-text">Flechtorfer Mühle</div></div>
 
+<!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); text-transform: uppercase;">Bedienung</h2>
         <div class="scroll-area">
             <p><strong>1. Zeitraum markieren:</strong> Start- und Enddatum tippen (wird gold).</p>
             <p><strong>2. Eintragen:</strong> Uhrzeit & Icon wählen. Gilt für alle markierten Tage.</p>
-            <p><strong>3. Sichern & Laden:</strong> Nutze die Buttons auf dem Hauptbildschirm, um deine Daten als Datei zu speichern oder wiederherzustellen.</p>
-            <p><strong>4. Löschen:</strong> Roter Button bei Markierung oder "X" am Einzeltag.</p>
-            <p><strong>5. App-Modus:</strong> Safari (Teilen -> Zum Home-Bildschirm) schützt deine Daten vor Browser-Reinigung.</p>
+            <p><strong>3. Sichern & Laden:</strong> Nutze die Buttons auf dem Hauptbildschirm (💾/📂), um deine Daten als Datei zu speichern oder wiederherzustellen.</p>
+            <p><strong>4. Löschen:</strong> Roter Button bei Markierung löscht Zeiträume, das "X" löscht Einzeltage.</p>
+            <p><strong>5. App-Modus:</strong> In Edge/Chrome auf die drei Punkte gehen -> <strong>App installieren</strong>. Dies schützt deine Daten am besten!</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
 </div>
 
+<!-- ANDERES OVERLAY -->
 <div id="customArea" onclick="if(event.target===this) toggleCustom()">
     <div class="overlay-content">
         <h3 style="color:var(--primary); margin:0; text-align:center;">WEITERE ICONS</h3>
-        <div class="large-icon-grid">
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
             <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')" style="font-size:30px; padding:20px;"><span>✈️</span></button>
             <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')" style="font-size:30px; padding:20px;"><span>🌴</span></button>
             <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')" style="font-size:30px; padding:20px;"><span>🏥</span></button>
@@ -90,6 +98,7 @@
     </div>
 </div>
 
+<!-- PDF VIEWER -->
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container" style="height:80vh;">
         <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #333;">
@@ -112,7 +121,7 @@
         <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan</button>
         <button onclick="viewPDF('liste.pdf', 'LISTE')" class="action-btn">📋 Abwesenheit</button>
         
-        <!-- NEUE BACKUP BUTTONS AUF DEM HOME SCREEN -->
+        <!-- BACKUP BUTTONS HOME SCREEN -->
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
             <button onclick="exportData()" class="backup-btn">💾 DATEN SICHERN</button>
             <button onclick="document.getElementById('importFile').click()" class="backup-btn">📂 DATEN LADEN</button>
@@ -208,7 +217,7 @@
         } else if(events[k]?.emoji) {
             evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small>${events[k].start}-${events[k].end} Uhr</small></div><button onclick="delete events['${k}'].emoji; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:22px;">✕</button></div>`;
         }
-        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen für diesen Tag..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events));">${events[k]?.note||""}</textarea></div>`;
+        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events));">${events[k]?.note||""}</textarea></div>`;
     }
 
     function deleteRange() {
@@ -253,7 +262,7 @@
                 events = JSON.parse(ev.target.result);
                 localStorage.setItem('fm_pro_v5', JSON.stringify(events));
                 renderCalendar(); alert("Daten erfolgreich geladen!");
-            } catch(err) { alert("Fehler beim Laden!"); }
+            } catch(err) { alert("Datei ungültig!"); }
         };
         reader.readAsText(file);
     }
@@ -271,7 +280,7 @@
 
     function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; }
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
-    function clearYearlyEvents() { if(confirm("Jahr wirklich leeren?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
+    function clearYearlyEvents() { if(confirm("Gesamtes Jahr leeren?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
@@ -286,7 +295,7 @@
             }
             i++;
         }
-        if(!has) return alert("Keine Einträge!");
+        if(!has) return alert("Keine Einträge zum Teilen!");
         try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
     }
 
