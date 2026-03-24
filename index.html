@@ -5,9 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
+    <!-- PWA & App-Icon Einstellungen (Original aus deinem ersten Code) -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <!-- Service Worker für Android (Entfernt Browser-Badge) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 
     <style>
         :root { 
@@ -18,16 +30,12 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
 
-        #pdfViewer { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
-        .pdf-container { width: 90vw; height: 160vw; max-height: 82vh; max-width: 420px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
-        .pdf-header { background: #1a1a1a; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .pdf-frame-container { flex: 1; width: 100%; height: 100%; overflow: auto; background: #eee; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .close-pdf { background: var(--gold-gradient); border: none; padding: 6px 15px; border-radius: 6px; font-weight: 900; color: #000; }
+        /* OVERLAYS */
+        #pdfViewer, #helpOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+        .pdf-container, .help-card { width: 90vw; max-width: 420px; background: #1a1a1a; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; padding: 20px; text-align: center; }
+        iframe { width: 100%; height: 60vh; border: none; background: #eee; }
 
-        #helpOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 25px; backdrop-filter: blur(10px); }
-        .help-card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; max-width: 340px; }
-
+        /* APP DESIGN */
         .app-container { height: 100vh; overflow-y: auto; }
         .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); visibility: hidden; padding-bottom: 40px; }
         .app.unlocked { visibility: visible; }
@@ -36,6 +44,7 @@
         .widget-row { display: flex; gap: 10px; padding: 0 15px 15px; }
         .info-btn-widget { flex: 1; background: rgba(243, 146, 0, 0.1); border: 1px solid rgba(243, 146, 0, 0.3); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--primary); font-weight: bold; cursor: pointer; }
 
+        /* KALENDER */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; background: var(--card); margin: 0 15px 15px; border-radius: 18px; border: 1px solid #444; }
         .day-label { text-align: center; font-size: 10px; font-weight: bold; color: var(--primary); }
         .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; background: #2c2c2e; cursor: pointer; position: relative; }
@@ -43,7 +52,7 @@
         .day.today { border: 2px solid var(--primary); }
         .day.selected-range { background: rgba(243, 146, 0, 0.4) !important; outline: 1px solid var(--primary); }
         .day.holiday { color: #ff453a !important; font-weight: 900; }
-        .day.has-event { font-size: 22px; flex-direction: column; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        .day.has-event { font-size: 22px; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
         .day-num { position: absolute; top: 3px; left: 4px; font-size: 8px; font-weight: bold; color: var(--primary); }
         .day.has-note::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
 
@@ -59,56 +68,52 @@
         .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; min-height: 60px; resize: none; }
         .event-card { background: #1c1c1e; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
 
-        #loader { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 30000; transition: 0.6s; }
-        .loader-ring { width: 35px; height: 35px; border: 3px solid rgba(243, 146, 0, 0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 30000; }
     </style>
 </head>
 <body>
 
-<div id="loader"><div class="metal-text">Flechtorfer Mühle</div><div class="loader-ring"></div></div>
+<div id="loader"><div class="metal-text">Flechtorfer Mühle</div></div>
 
+<!-- HILFE -->
 <div id="helpOverlay" onclick="toggleHelp(false)">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); font-style: italic; text-transform: uppercase;">Kurzanleitung</h2>
-        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6; padding-left: 20px;">
-            <li><strong>Einzelner Tag:</strong> Datum 1x antippen.</li>
-            <li><strong>Zeitraum wählen:</strong> Starttag tippen, dann Endtag tippen (Bereich wird gold).</li>
-            <li><strong>Eintragen:</strong> Button drücken. Uhrzeit wird mit übernommen.</li>
-            <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
-            <li><strong>Feiertage:</strong> Gesetzliche Feiertage werden automatisch <span style="color:#ff453a; font-weight:bold;">rot</span> markiert.</li>
-            <li><strong>Teilen:</strong> Der 🔗-Button erstellt eine WhatsApp-Liste. Gleiche Termine werden als Zeitraum (z.B. 01.10.-09.10.) zusammengefasst.</li>
+        <h2 style="color:var(--primary)">Kurzanleitung</h2>
+        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6;">
+            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird gold).</li>
+            <li><strong>Eintragen:</strong> Button wählen. Gleiche Termine werden beim Teilen als Block (01.-09.) zusammengefasst.</li>
+            <li><strong>Feiertage:</strong> Automatisch <span style="color:#ff453a">ROT</span> markiert.</li>
         </ul>
-        <button class="action-btn" style="width:100%; margin: 15px 0 0;" onclick="toggleHelp(false)">ALLES KLAR!</button>
+        <button class="action-btn" style="width:100%" onclick="toggleHelp(false)">Verstanden!</button>
     </div>
 </div>
 
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container">
-        <div class="pdf-header">
-            <span id="pdfTitle" style="font-weight:900; color:var(--primary); font-size:12px;">DOKUMENT</span>
-            <button class="close-pdf" onclick="closePDF()">X</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">DOC</span>
+            <button onclick="closePDF()" style="color:white; background:none; border:none; font-weight:bold;">X</button>
         </div>
-        <div class="pdf-frame-container"><iframe id="pdfFrame" src=""></iframe></div>
+        <iframe id="pdfFrame" src=""></iframe>
     </div>
 </div>
 
-<div class="app-container" id="scrollBox">
+<div class="app-container">
     <div class="app" id="mainApp">
         <div class="metal-text">Flechtorfer Mühle</div>
         
         <div class="widget-row">
-            <div class="info-btn-widget" onclick="toggleHelp(true)"><span>❓</span> Hilfe</div>
-            <div class="info-btn-widget" onclick="shareApp()"><span>🔗</span> Teilen</div>
+            <div class="info-btn-widget" onclick="toggleHelp(true)">❓ Hilfe</div>
+            <div class="info-btn-widget" onclick="shareApp()">🔗 Teilen</div>
         </div>
 
-        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan einsehen</button>
+        <button onclick="viewPDF('plan.pdf', 'SCHICHTPLAN')" class="action-btn">📅 Schichtplan</button>
         <button onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')" class="action-btn">📋 Abwesenheitsliste</button>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px 5px;">
-            <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
-            <h3 id="monthDisplay" style="color:var(--primary); margin:0; font-size: 16px;"></h3>
-            <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❯</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
+            <button onclick="changeMonth(-1)" style="color:var(--primary); background:none; border:none; font-size:22px;">❮</button>
+            <h3 id="monthDisplay" style="color:var(--primary); margin:0;"></h3>
+            <button onclick="changeMonth(1)" style="color:var(--primary); background:none; border:none; font-size:22px;">❯</button>
         </div>
 
         <div class="calendar-grid" id="calendar"></div>
@@ -118,7 +123,7 @@
         <div class="input-area">
             <div class="time-box">
                 <input type="time" id="startTime" value="06:00">
-                <span style="color:var(--primary); font-weight:900;">➔</span>
+                <span style="color:var(--primary)">➔</span>
                 <input type="time" id="endTime" value="14:00">
             </div>
             <div class="suggestion-grid">
@@ -129,187 +134,119 @@
                 <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
                 <button class="suggest-btn" onclick="toggleCustom()"><span>⚙️</span>Anderes</button>
             </div>
-
-            <button onclick="clearYearlyEvents()" style="background: rgba(255, 69, 58, 0.05); border: 1px dashed #ff453a; color: #ff453a; margin-top: 15px; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 10px; width: 100%; cursor: pointer; text-transform: uppercase;">
-                🗑️ Jahresplan <span id="delYear">2026</span> zurücksetzen
-            </button>
-
-            <div id="customArea" style="display:none; margin-top:15px; padding:10px; background:rgba(253, 217, 118, 0.05); border-radius:12px; border:1px solid var(--primary);">
+            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
+            
+            <div id="customArea" style="display:none; margin-top:15px; padding:10px; background:rgba(253,217,118,0.05); border-radius:12px; border:1px solid var(--primary);">
                 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:10px;">
-                    <button class="suggest-btn" onclick="quickAdd('✈️', 'Flugzeug')"><span>✈️</span></button>
+                    <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')"><span>🚒</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt/Krank')"><span>🏥</span></button>
+                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🛠️', 'Reparatur')"><span>🛠️</span></button>
                 </div>
-                <input type="text" id="customInput" placeholder="Eigener Text + Enter..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#000; color:white; font-size:13px; outline:none;">
+                <input type="text" id="customInput" placeholder="Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px;">
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const PASSWORT = "Müller 2026";
+    const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
-        let input = prompt("Bitte Passwort eingeben:");
-        if (input === PASSWORT) localStorage.setItem('fm_access', 'true');
-        else { alert("Falsches Passwort!"); location.reload(); }
+        if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
+        else location.reload();
     }
     document.getElementById('mainApp').classList.add('unlocked');
+    setTimeout(() => document.getElementById('loader').style.display='none', 1000);
 
-    let currentDate = new Date();
-    const realToday = new Date();
+    let currentDate = new Date(), realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
     let rangeStart = null, rangeEnd = null;
 
-    function toggleHelp(s) { document.getElementById('helpOverlay').style.display = s ? 'flex' : 'none'; }
-    function viewPDF(u, t) { document.getElementById('pdfTitle').innerText = t; document.getElementById('pdfFrame').src = u; document.getElementById('pdfViewer').style.display = 'flex'; }
-    function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; document.getElementById('pdfFrame').src = ""; }
-
-    function getEaster(year) {
-        const f = Math.floor, G = year % 19, C = f(year / 100), H = (C - f(C/4) - f((8*C+13)/25) + 19*G + 15) % 30,
-              I = H - f(H/28)*(1-f(29/(H+1))*f((21-G)/11)), J = (year + f(year/4) + I + 2 - C + f(C/4)) % 7,
-              L = I - J, m = 3 + f((L+40)/44), d = L + 28 - 31*f(m/4);
-        return new Date(year, m - 1, d);
+    function getEaster(y) {
+        const f=Math.floor, G=y%19, C=f(y/100), H=(C-f(C/4)-f((8*C+13)/25)+19*G+15)%30, I=H-f(H/28)*(1-f(29/(H+1))*f((21-G)/11)), J=(y+f(y/4)+I+2-C+f(C/4))%7, L=I-J, m=3+f((L+40)/44), d=L+28-31*f(m/4);
+        return new Date(y, m-1, d);
     }
 
     function renderCalendar() {
         const cal = document.getElementById('calendar');
         cal.innerHTML = '<div class="day-label">MO</div><div class="day-label">DI</div><div class="day-label">MI</div><div class="day-label">DO</div><div class="day-label">FR</div><div class="day-label">SA</div><div class="day-label">SO</div>';
         const y = currentDate.getFullYear(), m = currentDate.getMonth();
-        document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate);
+        document.getElementById('monthDisplay').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentDate);
         document.getElementById('delYear').innerText = y;
 
         const easter = getEaster(y);
         const holi = { [`1-0-${y}`]:1, [`1-4-${y}`]:1, [`3-9-${y}`]:1, [`31-9-${y}`]:1, [`25-11-${y}`]:1, [`26-11-${y}`]:1 };
-        const addH = (d) => { holi[`${d.getDate()}-${d.getMonth()}-${d.getFullYear()}`] = 1; };
-        addH(new Date(easter.getTime() - 2*86400000)); addH(new Date(easter.getTime() + 86400000));
-        addH(new Date(easter.getTime() + 39*86400000)); addH(new Date(easter.getTime() + 50*86400000));
+        const addH = (d) => holi[`${d.getDate()}-${d.getMonth()}-${d.getFullYear()}`] = 1;
+        addH(new Date(easter.getTime()-2*86400000)); addH(new Date(easter.getTime()+86400000));
+        addH(new Date(easter.getTime()+39*86400000)); addH(new Date(easter.getTime()+50*86400000));
 
-        let firstDay = (new Date(y, m, 1).getDay() + 6) % 7;
-        for (let i = 0; i < firstDay; i++) cal.appendChild(document.createElement('div'));
-        for (let i = 1; i <= new Date(y, m + 1, 0).getDate(); i++) {
-            const key = `${i}-${m}-${y}`, loopDate = new Date(y, m, i), d = document.createElement('div');
-            d.className = 'day' + ((loopDate.getDay() % 6 === 0) ? ' weekend' : '');
-            if (holi[key]) d.classList.add('holiday');
-            if (rangeStart && !rangeEnd && rangeStart.getTime() === loopDate.getTime()) d.classList.add('selected-range');
+        let first = (new Date(y, m, 1).getDay()+6)%7;
+        for (let i=0; i<first; i++) cal.appendChild(document.createElement('div'));
+        for (let i=1; i<=new Date(y, m+1, 0).getDate(); i++) {
+            const k=`${i}-${m}-${y}`, loop=new Date(y, m, i), d=document.createElement('div');
+            d.className = 'day' + (loop.getDay()%6===0 ? ' weekend':'');
+            if (holi[k]) d.classList.add('holiday');
+            if (rangeStart && !rangeEnd && rangeStart.getTime()===loop.getTime()) d.classList.add('selected-range');
             if (rangeStart && rangeEnd) {
-                let s = rangeStart < rangeEnd ? rangeStart : rangeEnd, e = rangeStart < rangeEnd ? rangeEnd : rangeStart;
-                if (loopDate >= s && loopDate <= e) d.classList.add('selected-range');
+                let s = rangeStart<rangeEnd?rangeStart:rangeEnd, e=rangeStart<rangeEnd?rangeEnd:rangeStart;
+                if (loop>=s && loop<=e) d.classList.add('selected-range');
             }
-            if (i === realToday.getDate() && m === realToday.getMonth() && y === realToday.getFullYear()) d.classList.add('today');
-            if (events[key]?.emoji) { d.classList.add('has-event'); d.innerHTML = `<span class="day-num">${i}</span>${events[key].emoji}`; }
-            else { d.innerHTML = i; if (events[key]?.note?.trim()) d.classList.add('has-note'); }
-            d.onclick = () => selectDay(i, m, y);
+            if (i===realToday.getDate() && m===realToday.getMonth() && y===y===realToday.getFullYear()) d.classList.add('today');
+            if (events[k]?.emoji) { d.classList.add('has-event'); d.innerHTML=`<span class="day-num">${i}</span>${events[k].emoji}`; }
+            else { d.innerHTML=i; if (events[k]?.note) d.classList.add('has-note'); }
+            d.onclick = () => {
+                if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart=loop; rangeEnd=null; }
+                else rangeEnd=loop; renderCalendar(); renderUI();
+            };
             cal.appendChild(d);
         }
     }
 
-    function selectDay(d, m, y) {
-        const clicked = new Date(y, m, d);
-        if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart = clicked; rangeEnd = null; }
-        else { rangeEnd = clicked; }
-        renderCalendar(); renderUI();
-    }
-
     function renderUI() {
-        const evC = document.getElementById('eventContainer'), ntC = document.getElementById('notesContainer');
-        evC.innerHTML = ''; ntC.innerHTML = '';
-        if (!rangeStart) return;
-        let k = `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-        if (events[k]?.emoji) {
-            evC.innerHTML = `<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start} - ${events[k].end} Uhr</small></div><button onclick="deleteEvent('${k}')" style="border:none; background:none; font-size:22px; color:#ff453a;">✕</button></div>`;
-        }
-        ntC.innerHTML = `<div class="notes-area"><small style="color:var(--primary); font-weight:bold; display:block; margin-bottom:5px;">NOTIZEN</small><textarea id="dayNote" placeholder="Hier tippen..." oninput="saveNote()">${events[k]?.note || ""}</textarea></div>`;
-    }
-
-    function saveNote() {
-        let k = `${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
-        if (!events[k]) events[k] = {};
-        events[k].note = document.getElementById('dayNote').value;
-        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-        renderCalendar();
+        const evC=document.getElementById('eventContainer'), ntC=document.getElementById('notesContainer');
+        evC.innerHTML=''; ntC.innerHTML=''; if(!rangeStart) return;
+        let k=`${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
+        if(events[k]?.emoji) evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start}-${events[k].end} Uhr</small></div><button onclick="events['${k}'].emoji=null; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:20px;">✕</button></div>`;
+        ntC.innerHTML=`<div class="notes-area"><textarea placeholder="Notizen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
     }
 
     function quickAdd(emoji, title) {
-        if (!rangeStart) return;
-        const s = document.getElementById('startTime').value, e = document.getElementById('endTime').value;
-        let startL = rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
-        let endL = rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : rangeStart;
-        let t = new Date(startL);
-        while (t <= endL) {
-            let k = `${t.getDate()}-${t.getMonth()}-${t.getFullYear()}`;
-            if (!events[k]) events[k] = {};
-            Object.assign(events[k], { emoji, title, start: s, end: e });
-            t.setDate(t.getDate() + 1);
+        if(!rangeStart) return;
+        let sD=rangeEnd?(rangeStart<rangeEnd?rangeStart:rangeEnd):rangeStart, eD=rangeEnd?(rangeStart<rangeEnd?rangeEnd:rangeStart):rangeStart, t=new Date(sD);
+        while(t<=eD) {
+            let k=`${t.getDate()}-${t.getMonth()}-${t.getFullYear()}`;
+            events[k]=events[k]||{}; Object.assign(events[k], {emoji, title, start:document.getElementById('startTime').value, end:document.getElementById('endTime').value});
+            t.setDate(t.getDate()+1);
         }
-        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-        rangeStart = rangeEnd = null; renderCalendar(); renderUI();
-        document.getElementById('customArea').style.display = 'none';
-    }
-
-    function deleteEvent(k) {
-        if (events[k]) { events[k].emoji = null; if (!events[k].note) delete events[k]; }
-        localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-        renderCalendar(); renderUI();
-    }
-
-    function clearYearlyEvents() {
-        const y = currentDate.getFullYear();
-        if (confirm(`Alle Einträge für ${y} wirklich löschen?`)) {
-            Object.keys(events).forEach(k => { if (k.endsWith(`-${y}`)) delete events[k]; });
-            localStorage.setItem('fm_pro_v5', JSON.stringify(events));
-            renderCalendar(); renderUI();
-        }
+        localStorage.setItem('fm_pro_v5', JSON.stringify(events)); rangeStart=rangeEnd=null; renderCalendar(); renderUI();
     }
 
     async function shareApp() {
-        const y = currentDate.getFullYear(), m = currentDate.getMonth();
-        const monthName = new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(currentDate);
-        let shareText = `📅 *Mein Plan: ${monthName} ${y}*\n`;
-        let hasEvents = false;
-        const daysInMonth = new Date(y, m + 1, 0).getDate();
-        let i = 1;
-
-        while (i <= daysInMonth) {
-            const key = `${i}-${m}-${y}`;
-            if (events[key] && events[key].emoji) {
-                hasEvents = true;
-                let startDay = i;
-                let currentEv = events[key];
-                while (i < daysInMonth) {
-                    let nextKey = `${i + 1}-${m}-${y}`;
-                    if (events[nextKey] && events[nextKey].emoji === currentEv.emoji && events[nextKey].title === currentEv.title) i++;
-                    else break;
-                }
-                const startStr = String(startDay).padStart(2, '0') + "." + String(m + 1).padStart(2, '0') + ".";
-                const endStr = String(i).padStart(2, '0') + "." + String(m + 1).padStart(2, '0') + ".";
-                let dateRange = (startDay === i) ? startStr : `${startStr} - ${endStr}`;
-                shareText += `\n• ${dateRange} ${currentEv.emoji} *${currentEv.title}*`;
-                if (currentEv.start && currentEv.end) shareText += ` (${currentEv.start}-${currentEv.end} Uhr)`;
+        const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
+        let txt=`📅 *Plan: ${mN} ${y}*\n`, i=1, has=false;
+        while(i<=new Date(y,m+1,0).getDate()) {
+            const k=`${i}-${m}-${y}`;
+            if(events[k]?.emoji) {
+                has=true; let start=i, curr=events[k];
+                while(i<new Date(y,m+1,0).getDate() && events[`${i+1}-${m}-${y}`]?.emoji===curr.emoji && events[`${i+1}-${m}-${y}`]?.title===curr.title) i++;
+                let range = (start===i)?`${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.` : `${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}. - ${String(i).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.`;
+                txt+=`\n• ${range} ${curr.emoji} *${curr.title}* (${curr.start}-${curr.end} Uhr)`;
             }
             i++;
         }
-        if (!hasEvents) shareText += "\nKeine Schichten eingetragen.";
-        shareText += `\n\n_Gesendet von meinem FM Planer_`;
-
-        try {
-            if (navigator.share) await navigator.share({ title: 'FM Planer', text: shareText });
-            else { await navigator.clipboard.writeText(shareText); alert("Kopiert!"); }
-        } catch (e) {}
+        txt+=`\n\n_Gesendet von meinem FM Planer_`;
+        try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
     }
 
-    function toggleCustom() {
-        const a = document.getElementById('customArea'), i = document.getElementById('customInput');
-        a.style.display = (a.style.display==='none'||a.style.display==='') ? 'block' : 'none';
-        if(a.style.display==='block') {
-            i.focus();
-            i.onkeydown = (e) => { if(e.key==='Enter' && i.value.trim()!=="") quickAdd('📍', i.value); };
-        }
-    }
+    function toggleCustom() { const a=document.getElementById('customArea'); a.style.display=a.style.display==='none'?'block':'none'; }
+    function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
+    function toggleHelp(s) { document.getElementById('helpOverlay').style.display=s?'flex':'none'; }
+    function viewPDF(u,t) { document.getElementById('pdfViewer').style.display='flex'; document.getElementById('pdfFrame').src=u; document.getElementById('pdfTitle').innerText=t; }
+    function closePDF() { document.getElementById('pdfViewer').style.display='none'; }
+    function clearYearlyEvents() { if(confirm("ALLES LÖSCHEN?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
-    function changeMonth(d) { currentDate.setMonth(currentDate.getMonth() + d); renderCalendar(); }
-    window.onload = () => { renderCalendar(); setTimeout(() => { document.getElementById('loader').style.opacity = '0'; setTimeout(() => document.getElementById('loader').style.display='none', 600); }, 1200); };
+    renderCalendar();
 </script>
 </body>
 </html>
