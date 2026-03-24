@@ -5,23 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F39200">
 
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="manifest" href="manifest.json">
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Error', err));
-            });
-        }
-    </script>
 
     <style>
         :root { 
@@ -55,7 +46,6 @@
             align-items: center; border-bottom: 1px solid rgba(243, 146, 0, 0.3);
         }
 
-        /* DAS GOLDENE X */
         .close-pdf { 
             background: var(--gold-gradient) !important;
             border: none; padding: 8px 15px; border-radius: 8px; 
@@ -63,8 +53,8 @@
             font-size: 14px; text-transform: uppercase; cursor: pointer;
         }
 
-        .pdf-frame-container { flex: 1; width: 100%; height: 100%; background: #fff; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .pdf-frame-container { flex: 1; width: 100%; height: 100%; background: #fff; overflow: hidden; }
+        object, iframe { width: 100%; height: 100%; border: none; }
 
         /* APP STYLES */
         .app-container { height: 100vh; overflow-y: auto; }
@@ -112,8 +102,7 @@
             <li><strong>Eintragen:</strong> Button wählen. Uhrzeit wird mit übernommen.</li>
             <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
             <li><strong>Feiertage:</strong> Gesetzlich <span style="color:#ff453a; font-weight:bold;">ROT</span> markiert.</li>
-            <li><strong>Notizen:</strong> Werden pro Tag automatisch gesichert.</li>
-            <li><strong>Teilen:</strong> Erstellt WhatsApp-Liste. Gleiche Termine werden als Zeitraum (z.B. 01.10.-09.10.) zusammengefasst.</li>
+            <li><strong>Teilen:</strong> WhatsApp-Liste mit automatischer Zeitraum-Bündelung.</li>
         </ul>
         <button class="action-btn" style="width:100%; margin-top:15px" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
     </div>
@@ -125,7 +114,9 @@
             <span id="pdfTitle" style="font-weight: 900; color: var(--primary); font-size: 12px; text-transform: uppercase;">Dokument</span>
             <button class="close-pdf" onclick="closePDF()">X</button>
         </div>
-        <div class="pdf-frame-container"><iframe id="pdfFrame" src=""></iframe></div>
+        <div class="pdf-frame-container" id="pdfFrameBox">
+            <!-- PDF wird hier dynamisch geladen -->
+        </div>
     </div>
 </div>
 
@@ -195,23 +186,26 @@
     let rangeStart = null, rangeEnd = null;
 
     function viewPDF(u, t) {
-        const frame = document.getElementById('pdfFrame');
+        const frameBox = document.getElementById('pdfFrameBox');
         const title = document.getElementById('pdfTitle');
         const viewer = document.getElementById('pdfViewer');
         title.innerText = t;
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        if (isAndroid) {
-            const fullUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1) + u;
-            frame.src = `https://google.com{encodeURIComponent(fullUrl)}&embedded=true`;
-        } else {
-            frame.src = u;
-        }
+
+        // Lokale Einbettung für Android & iOS (ohne externe Server)
+        frameBox.innerHTML = `
+            <object data="${u}" type="application/pdf" width="100%" height="100%">
+                <div style="padding:40px; text-align:center; color:black;">
+                    PDF kann nicht direkt angezeigt werden.<br><br>
+                    <a href="${u}" target="_blank" style="background:var(--gold-gradient); padding:10px 20px; border-radius:8px; color:black; font-weight:bold; text-decoration:none;">PDF ÖFFNEN</a>
+                </div>
+            </object>`;
+
         viewer.style.display = 'flex';
     }
 
     function closePDF() {
         document.getElementById('pdfViewer').style.display = 'none';
-        document.getElementById('pdfFrame').src = '';
+        document.getElementById('pdfFrameBox').innerHTML = '';
     }
 
     function getEaster(y) {
@@ -259,7 +253,7 @@
         evC.innerHTML=''; ntC.innerHTML=''; if(!rangeStart) return;
         let k=`${rangeStart.getDate()}-${rangeStart.getMonth()}-${rangeStart.getFullYear()}`;
         if(events[k]?.emoji) evC.innerHTML=`<div class="event-card"><div>${events[k].emoji} <b>${events[k].title}</b><br><small style="color:var(--primary)">${events[k].start}-${events[k].end} Uhr</small></div><button onclick="events['${k}'].emoji=null; renderCalendar(); renderUI();" style="color:#ff453a; background:none; border:none; font-size:22px; cursor:pointer;">✕</button></div>`;
-        ntC.innerHTML=`<div class="notes-area"><small style="color:var(--primary); font-weight:bold;">NOTIZEN</small><textarea placeholder="Hier tippen..." oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
+        ntC.innerHTML=`<div class="notes-area"><small style="color:var(--primary); font-weight:bold;">NOTIZEN</small><textarea oninput="events['${k}']=events['${k}']||{}; events['${k}'].note=this.value; localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar();">${events[k]?.note||""}</textarea></div>`;
     }
 
     function quickAdd(emoji, title) {
