@@ -5,21 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
     
-    <!-- PWA & App-Icon Einstellungen (Original aus deinem ersten Code) -->
+    <!-- PWA & App-Icon Einstellungen (EXAKT wie in deinem ersten Code) -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
-
-    <!-- Service Worker für Android (Entfernt Browser-Badge) -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
 
     <style>
         :root { 
@@ -80,7 +72,7 @@
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary)">Kurzanleitung</h2>
         <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6;">
-            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird gold).</li>
+            <li><strong>Zeitraum:</strong> Start + Ende tippen (wird gold).</li>
             <li><strong>Eintragen:</strong> Button wählen. Gleiche Termine werden beim Teilen als Block (01.-09.) zusammengefasst.</li>
             <li><strong>Feiertage:</strong> Automatisch <span style="color:#ff453a">ROT</span> markiert.</li>
         </ul>
@@ -153,7 +145,8 @@
 <script>
     const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
-        if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
+        let p = prompt("Passwort:");
+        if (p === PASS) localStorage.setItem('fm_access', 'true');
         else location.reload();
     }
     document.getElementById('mainApp').classList.add('unlocked');
