@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>FM Planer Pro</title>
+    
+    <!-- PWA & Mobile Optimierung -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FM Planer">
     <meta name="theme-color" content="#F39200">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         :root { 
             --gold-gradient: linear-gradient(90deg, #b36b00 0%, #f9d976 25%, #f39200 50%, #f9d976 75%, #b36b00 100%);
@@ -30,8 +35,7 @@
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); padding: 20px;
         }
-        .help-card { max-height: 85vh; }
-        .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; }
+        .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; max-height: 60vh; }
 
         /* CALENDAR */
         .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
@@ -44,7 +48,7 @@
         .day.today { border: 2px solid #fff; }
         .day.has-event { font-size: 22px; }
 
-        /* BUTTONS & INPUTS */
+        /* BUTTONS */
         .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
         .large-icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
@@ -62,31 +66,37 @@
 <!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); text-transform: uppercase;">Anleitung</h2>
+        <h2 style="color:var(--primary); text-transform: uppercase;">Bedienung</h2>
         <div class="scroll-area">
-            <p><strong>1. Zeitraum markieren:</strong> Tippe Start- und Enddatum an. Der Bereich leuchtet <strong>gold</strong>.</p>
-            <p><strong>2. Eintragen:</strong> Wähle Uhrzeit & Icon. Der Termin wird für den gesamten Zeitraum gespeichert.</p>
-            <p><strong>3. Anderes (Overlay):</strong> Unter "Anderes" findest du mehr Icons und ein Feld für <strong>eigenen Text</strong>.</p>
+            <p><strong>1. Zeitraum markieren:</strong> Tippe Start- und Enddatum an. Der Bereich wird <strong>gold</strong>.</p>
+            <p><strong>2. Eintragen:</strong> Wähle Uhrzeit & Icon. Der Termin gilt für alle markierten Tage.</p>
+            <p><strong>3. Anderes & Backup:</strong> Unter "Anderes" findest du weitere Icons, freien Text und die <strong>Datensicherung</strong>.</p>
             <p><strong>4. Löschen:</strong> <br>• <strong>Bereich:</strong> Roter Button erscheint bei Markierung.<br>• <strong>Tag:</strong> Tag antippen & "X" nutzen.<br>• <strong>Jahr:</strong> Button ganz unten leert das Jahr.</p>
-            <p><strong>5. Notizen:</strong> Textfeld unten speichert Infos pro Tag automatisch.</p>
-            <p><strong>6. PDF & Teilen:</strong> Pläne einsehen oder Monats-Zusammenfassung an WhatsApp senden.</p>
+            <p><strong>5. Als App nutzen (Wichtig):</strong> Öffne Safari (iOS) -> Teilen -> <strong>Zum Home-Bildschirm</strong> oder Chrome (Android) -> <strong>App installieren</strong>. Dies schützt deine Daten besser!</p>
         </div>
-        <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
+        <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
 </div>
 
 <!-- ANDERES OVERLAY -->
 <div id="customArea" onclick="if(event.target===this) toggleCustom()">
     <div class="overlay-content">
-        <h3 style="color:var(--primary); margin:0; text-align:center;">ZUSÄTZLICHE ICONS</h3>
+        <h3 style="color:var(--primary); margin:0; text-align:center;">OPTIONEN & BACKUP</h3>
         <div class="large-icon-grid">
             <button class="suggest-btn" onclick="quickAdd('✈️', 'Flug')"><span>✈️</span></button>
-            <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuer')"><span>🚒</span></button>
             <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
             <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
             <button class="suggest-btn" onclick="quickAdd('🛠️', 'Rep.')"><span>🛠️</span></button>
             <button class="suggest-btn" onclick="quickAdd('🍕', 'Essen')"><span>🍕</span></button>
+            <button class="suggest-btn" onclick="quickAdd('☀️', 'Frei')"><span>☀️</span></button>
         </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+            <button onclick="exportData()" style="background:#222; color:var(--primary); border:1px solid var(--primary); padding:10px; border-radius:10px; font-weight:bold; font-size:11px;">💾 DATEN SICHERN</button>
+            <button onclick="document.getElementById('importFile').click()" style="background:#222; color:var(--primary); border:1px solid var(--primary); padding:10px; border-radius:10px; font-weight:bold; font-size:11px;">📂 DATEN LADEN</button>
+            <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+        </div>
+
         <input type="text" id="customInput" placeholder="Eigener Text..." style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:15px;">
         <button class="action-btn" onclick="quickAdd('📝', document.getElementById('customInput').value)">SPEICHERN</button>
         <button onclick="toggleCustom()" style="background:none; border:none; color:#777; margin-top:10px; cursor:pointer;">Schließen</button>
@@ -239,6 +249,25 @@
         rangeStart = rangeEnd = null; toggleCustom(true); renderCalendar(); renderUI();
     }
 
+    function exportData() {
+        const blob = new Blob([JSON.stringify(events)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `FM_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+    }
+
+    function importData(e) {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            events = JSON.parse(ev.target.result);
+            localStorage.setItem('fm_pro_v5', JSON.stringify(events));
+            renderCalendar(); alert("Daten geladen!"); toggleCustom(true);
+        };
+        reader.readAsText(file);
+    }
+
     function toggleCustom(forceClose) { 
         const a = document.getElementById('customArea'); 
         a.style.display = (forceClose || a.style.display==='flex') ? 'none' : 'flex'; 
@@ -252,7 +281,7 @@
 
     function closePDF() { document.getElementById('pdfViewer').style.display = 'none'; }
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
-    function clearYearlyEvents() { if(confirm("Wirklich alles für "+currentDate.getFullYear()+" löschen?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
+    function clearYearlyEvents() { if(confirm("Jahr wirklich leeren?")) { Object.keys(events).forEach(k => { if(k.endsWith("-"+currentDate.getFullYear())) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
@@ -267,7 +296,7 @@
             }
             i++;
         }
-        if(!has) return alert("Keine Einträge zum Teilen!");
+        if(!has) return alert("Keine Einträge!");
         try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
     }
 
