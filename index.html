@@ -7,24 +7,18 @@
     
     <!-- PWA & App-Icon Einstellungen -->
     <meta name="apple-mobile-web-app-title" content="FM Planer">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F39200">
 
-    <!-- Icons & Manifest -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="manifest" href="manifest.json">
 
-    <!-- Service Worker Registrierung -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('Service Worker registriert!');
-                }).catch(err => {
-                    console.log('Service Worker Fehler:', err);
-                });
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Error', err));
             });
         }
     </script>
@@ -38,13 +32,42 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow: hidden; }
 
-        /* OVERLAYS */
-        #pdfViewer, #helpOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
-        .pdf-container, .help-card { width: 90vw; max-width: 420px; background: #1a1a1a; border: 2px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; padding: 20px; text-align: center; }
-        iframe { width: 100%; height: 60vh; border: none; background: #eee; }
+        /* PDF MODAL & HILFE DESIGN */
+        #pdfViewer, #helpOverlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+            z-index: 20000; display: none; align-items: center; 
+            justify-content: center; padding: 20px; backdrop-filter: blur(15px); 
+        }
 
-        /* APP DESIGN */
-        .app-container { height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .pdf-container, .help-card { 
+            width: 95vw; height: 85vh; max-width: 450px; 
+            background: #1a1a1a; 
+            border: 3px solid var(--primary); 
+            border-radius: 20px; display: flex; flex-direction: column; 
+            overflow: hidden; 
+            box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); 
+        }
+        .help-card { height: auto; padding: 25px; text-align: center; }
+
+        .pdf-header { 
+            background: #1a1a1a; padding: 15px; 
+            display: flex; justify-content: space-between; 
+            align-items: center; border-bottom: 1px solid rgba(243, 146, 0, 0.3);
+        }
+
+        /* DAS GOLDENE X */
+        .close-pdf { 
+            background: var(--gold-gradient) !important;
+            border: none; padding: 8px 15px; border-radius: 8px; 
+            font-weight: 900; color: #000 !important; 
+            font-size: 14px; text-transform: uppercase; cursor: pointer;
+        }
+
+        .pdf-frame-container { flex: 1; width: 100%; height: 100%; background: #fff; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* APP STYLES */
+        .app-container { height: 100vh; overflow-y: auto; }
         .app { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100vh; background: rgba(15, 15, 17, 0.9); visibility: hidden; padding-bottom: 40px; }
         .app.unlocked { visibility: visible; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
@@ -64,46 +87,45 @@
         .day.has-note::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
 
         .action-btn { background: var(--gold-gradient); margin: 0 15px 15px; padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: calc(100% - 30px); display: block; }
-        .input-area { padding: 20px; background: #0a0a0a; border-radius: 25px 25px 0 0; border-top: 1px solid #333; }
-        .time-box { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .time-box input { padding: 12px 5px; border-radius: 10px; border: 2px solid #555; background: #1c1c1e; color: #f9d976; width: 45%; text-align: center; font-size: 24px; font-weight: 900; font-family: monospace; outline: none; }
-        
-        .suggestion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .suggestion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 20px; }
+        .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
         .suggest-btn span { font-size: 20px; margin-bottom: 4px; }
-
+        
         .notes-area { margin: 0 15px 15px; padding: 15px; background: rgba(243, 146, 0, 0.05); border-radius: 12px; border: 1px dashed var(--primary); }
         .notes-area textarea { width: 100%; background: transparent; border: none; color: white; font-size: 14px; outline: none; min-height: 60px; resize: none; font-family: inherit; }
         .event-card { background: #1c1c1e; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
-
-        #loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 30000; }
     </style>
 </head>
 <body>
 
-<div id="loader"><div class="metal-text">Flechtorfer Mühle</div></div>
+<div id="loader" style="position:fixed; inset:0; background:#000; z-index:30000; display:flex; justify-content:center; align-items:center;">
+    <div class="metal-text">Flechtorfer Mühle</div>
+</div>
 
 <!-- HILFE OVERLAY -->
-<div id="helpOverlay" onclick="toggleHelp(false)">
+<div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); font-style: italic;">Kurzanleitung</h2>
-        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.6;">
-            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird gold).</li>
-            <li><strong>Eintragen:</strong> Button wählen. Gleiche Termine werden beim Teilen als Block (z.B. 01.-09.) zusammengefasst.</li>
-            <li><strong>Feiertage:</strong> Automatisch <span style="color:#ff453a">ROT</span> markiert.</li>
-            <li><strong>Teilen:</strong> Erstellt WhatsApp-Liste ohne Notizen.</li>
+        <h2 style="color:var(--primary); text-transform: uppercase; font-style: italic;">Kurzanleitung</h2>
+        <ul style="text-align:left; font-size:13px; color:#ccc; line-height: 1.5; padding-left: 20px;">
+            <li><strong>Tag wählen:</strong> Datum 1x antippen.</li>
+            <li><strong>Zeitraum:</strong> Starttag + Endtag tippen (wird <span style="color:var(--primary)">gold</span>).</li>
+            <li><strong>Eintragen:</strong> Button wählen. Uhrzeit wird mit übernommen.</li>
+            <li><strong>Spezial-Symbole:</strong> Unter ⚙️ (Anderes) findest du 🚒, 🌴, ✈️, 🏥 und 🛠️.</li>
+            <li><strong>Feiertage:</strong> Gesetzlich <span style="color:#ff453a; font-weight:bold;">ROT</span> markiert.</li>
+            <li><strong>Notizen:</strong> Werden pro Tag automatisch gesichert.</li>
+            <li><strong>Teilen:</strong> Erstellt WhatsApp-Liste. Gleiche Termine werden als Zeitraum (z.B. 01.10.-09.10.) zusammengefasst.</li>
         </ul>
-        <button class="action-btn" style="width:100%" onclick="toggleHelp(false)">Verstanden!</button>
+        <button class="action-btn" style="width:100%; margin-top:15px" onclick="document.getElementById('helpOverlay').style.display='none'">ALLES KLAR!</button>
     </div>
 </div>
 
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
     <div class="pdf-container">
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-            <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">PDF</span>
-            <button onclick="closePDF()" style="color:white; background:none; border:none; font-weight:bold; font-size:18px;">✕</button>
+        <div class="pdf-header">
+            <span id="pdfTitle" style="font-weight: 900; color: var(--primary); font-size: 12px; text-transform: uppercase;">Dokument</span>
+            <button class="close-pdf" onclick="closePDF()">X</button>
         </div>
-        <iframe id="pdfFrame" src=""></iframe>
+        <div class="pdf-frame-container"><iframe id="pdfFrame" src=""></iframe></div>
     </div>
 </div>
 
@@ -112,7 +134,7 @@
         <div class="metal-text">Flechtorfer Mühle</div>
         
         <div class="widget-row">
-            <div class="info-btn-widget" onclick="toggleHelp(true)">❓ Hilfe</div>
+            <div class="info-btn-widget" onclick="document.getElementById('helpOverlay').style.display='flex'">❓ Hilfe</div>
             <div class="info-btn-widget" onclick="shareApp()">🔗 Teilen</div>
         </div>
 
@@ -120,20 +142,20 @@
         <button onclick="viewPDF('liste.pdf', 'ABWESENHEITSLISTE')" class="action-btn">📋 Abwesenheitsliste</button>
 
         <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 25px;">
-            <button onclick="changeMonth(-1)" style="color:var(--primary); background:none; border:none; font-size:22px; cursor:pointer;">❮</button>
-            <h3 id="monthDisplay" style="color:var(--primary); margin:0;"></h3>
-            <button onclick="changeMonth(1)" style="color:var(--primary); background:none; border:none; font-size:22px; cursor:pointer;">❯</button>
+            <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❮</button>
+            <h3 id="monthDisplay" style="color:var(--primary); margin:0; font-size: 16px;"></h3>
+            <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--primary); font-size:22px;">❯</button>
         </div>
 
         <div class="calendar-grid" id="calendar"></div>
         <div id="eventContainer"></div>
         <div id="notesContainer"></div>
 
-        <div class="input-area">
-            <div class="time-box">
-                <input type="time" id="startTime" value="06:00">
+        <div style="padding:20px; background:#0a0a0a; border-radius:25px 25px 0 0; border-top:1px solid #333;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <input type="time" id="startTime" value="06:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px; font-family:monospace;">
                 <span style="color:var(--primary)">➔</span>
-                <input type="time" id="endTime" value="14:00">
+                <input type="time" id="endTime" value="14:00" style="background:#1c1c1e; color:#f9d976; border:2px solid #555; padding:10px; border-radius:10px; font-size:20px; font-family:monospace;">
             </div>
             <div class="suggestion-grid">
                 <button class="suggest-btn" onclick="quickAdd('💼', 'Meeting')"><span>💼</span>Meeting</button>
@@ -143,17 +165,17 @@
                 <button class="suggest-btn" onclick="quickAdd('🥳', 'Party')"><span>🥳</span>Party</button>
                 <button class="suggest-btn" onclick="toggleCustom()"><span>⚙️</span>Anderes</button>
             </div>
-            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px; cursor:pointer; font-weight:800;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
+            <button onclick="clearYearlyEvents()" style="background:rgba(255,69,58,0.05); border:1px dashed #ff453a; color:#ff453a; margin-top:15px; padding:12px; border-radius:12px; width:100%; font-size:10px; font-weight:800;">🗑️ JAHR <span id="delYear"></span> LÖSCHEN</button>
             
             <div id="customArea" style="display:none; margin-top:15px; padding:10px; background:rgba(253,217,118,0.05); border-radius:12px; border:1px solid var(--primary);">
                 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-bottom:10px;">
                     <button class="suggest-btn" onclick="quickAdd('✈️', 'Flugzeug')"><span>✈️</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')"><span>🚒</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🌴', 'Urlaub')"><span>🌴</span></button>
-                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt/Krank')"><span>🏥</span></button>
+                    <button class="suggest-btn" onclick="quickAdd('🏥', 'Arzt')"><span>🏥</span></button>
                     <button class="suggest-btn" onclick="quickAdd('🛠️', 'Reparatur')"><span>🛠️</span></button>
                 </div>
-                <input type="text" id="customInput" placeholder="Eigener Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px; outline:none;">
+                <input type="text" id="customInput" placeholder="Eigener Text + Enter..." style="width:100%; padding:10px; background:#000; color:white; border:1px solid #444; border-radius:8px;">
             </div>
         </div>
     </div>
@@ -162,16 +184,35 @@
 <script>
     const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
-        let p = prompt("Bitte Passwort eingeben:");
-        if (p === PASS) localStorage.setItem('fm_access', 'true');
+        if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
         else location.reload();
     }
     document.getElementById('mainApp').classList.add('unlocked');
-    setTimeout(() => { document.getElementById('loader').style.opacity='0'; setTimeout(()=>document.getElementById('loader').style.display='none', 600); }, 1000);
+    setTimeout(() => document.getElementById('loader').style.display='none', 1000);
 
     let currentDate = new Date(), realToday = new Date();
     let events = JSON.parse(localStorage.getItem('fm_pro_v5')) || {};
     let rangeStart = null, rangeEnd = null;
+
+    function viewPDF(u, t) {
+        const frame = document.getElementById('pdfFrame');
+        const title = document.getElementById('pdfTitle');
+        const viewer = document.getElementById('pdfViewer');
+        title.innerText = t;
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid) {
+            const fullUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1) + u;
+            frame.src = `https://google.com{encodeURIComponent(fullUrl)}&embedded=true`;
+        } else {
+            frame.src = u;
+        }
+        viewer.style.display = 'flex';
+    }
+
+    function closePDF() {
+        document.getElementById('pdfViewer').style.display = 'none';
+        document.getElementById('pdfFrame').src = '';
+    }
 
     function getEaster(y) {
         const f=Math.floor, G=y%19, C=f(y/100), H=(C-f(C/4)-f((8*C+13)/25)+19*G+15)%30, I=H-f(H/28)*(1-f(29/(H+1))*f((21-G)/11)), J=(y+f(y/4)+I+2-C+f(C/4))%7, L=I-J, m=3+f((L+40)/44), d=L+28-31*f(m/4);
@@ -191,8 +232,8 @@
         addH(new Date(easter.getTime()-2*86400000)); addH(new Date(easter.getTime()+86400000));
         addH(new Date(easter.getTime()+39*86400000)); addH(new Date(easter.getTime()+50*86400000));
 
-        let first = (new Date(y, m, 1).getDay()+6)%7;
-        for (let i=0; i<first; i++) cal.appendChild(document.createElement('div'));
+        let firstDay = (new Date(y, m, 1).getDay()+6)%7;
+        for (let i=0; i<firstDay; i++) cal.appendChild(document.createElement('div'));
         for (let i=1; i<=new Date(y, m+1, 0).getDate(); i++) {
             const k=`${i}-${m}-${y}`, loop=new Date(y, m, i), d=document.createElement('div');
             d.className = 'day' + (loop.getDay()%6===0 ? ' weekend':'');
@@ -207,7 +248,7 @@
             else { d.innerHTML=i; if (events[k]?.note) d.classList.add('has-note'); }
             d.onclick = () => {
                 if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart=loop; rangeEnd=null; }
-                else rangeEnd=loop; renderCalendar(); renderUI();
+                else rangeStart=loop; renderCalendar(); renderUI();
             };
             cal.appendChild(d);
         }
@@ -235,27 +276,28 @@
 
     async function shareApp() {
         const y=currentDate.getFullYear(), m=currentDate.getMonth(), mN=new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate);
-        let txt=`📅 *Mein Plan: ${mN} ${y}*\n`, i=1, has=false;
+        let txt=`📅 *Plan: ${mN} ${y}*\n`, i=1, has=false;
         while(i<=new Date(y,m+1,0).getDate()) {
             const k=`${i}-${m}-${y}`;
             if(events[k]?.emoji) {
                 has=true; let start=i, curr=events[k];
-                while(i<new Date(y,m+1,0).getDate() && events[`${i+1}-${m}-${y}`]?.emoji===curr.emoji && events[`${i+1}-${m}-${y}`]?.title===curr.title) i++;
+                while(i < new Date(y,m+1,0).getDate()) {
+                    let nextK = `${i+1}-${m}-${y}`;
+                    if(events[nextK] && events[nextK].emoji === curr.emoji && events[nextK].title === curr.title) i++;
+                    else break;
+                }
                 let range = (start===i)?`${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.` : `${String(start).padStart(2,'0')}.${String(m+1).padStart(2,'0')}. - ${String(i).padStart(2,'0')}.${String(m+1).padStart(2,'0')}.`;
                 txt+=`\n• ${range} ${curr.emoji} *${curr.title}* (${curr.start}-${curr.end} Uhr)`;
             }
             i++;
         }
         txt+=`\n\n_Gesendet von meinem FM Planer_`;
-        try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Plan kopiert!"); }} catch(e){}
+        try { if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); alert("Kopiert!"); }} catch(e){}
     }
 
-    function toggleCustom() { const a=document.getElementById('customArea'), i=document.getElementById('customInput'); a.style.display=a.style.display==='none'?'block':'none'; if(a.style.display==='block') { i.focus(); i.onkeydown=(e)=>{if(e.key==='Enter'&&i.value.trim()!=="")quickAdd('📍',i.value);};}}
+    function toggleCustom() { const a=document.getElementById('customArea'), i=document.getElementById('customInput'); a.style.display=a.style.display==='none'?'block':'none'; if(a.style.display==='block'){i.focus(); i.onkeydown=(e)=>{if(e.key==='Enter'&&i.value.trim()!=="")quickAdd('📍',i.value);};}}
     function changeMonth(d) { currentDate.setMonth(currentDate.getMonth()+d); renderCalendar(); }
-    function toggleHelp(s) { document.getElementById('helpOverlay').style.display=s?'flex':'none'; }
-    function viewPDF(u,t) { document.getElementById('pdfViewer').style.display='flex'; document.getElementById('pdfFrame').src=u; document.getElementById('pdfTitle').innerText=t; }
-    function closePDF() { document.getElementById('pdfViewer').style.display='none'; }
-    function clearYearlyEvents() { if(confirm("Möchtest du wirklich alle Einträge für dieses Jahr löschen?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
+    function clearYearlyEvents() { if(confirm("ALLES LÖSCHEN?")) { Object.keys(events).forEach(k => { if(k.endsWith(`-${currentDate.getFullYear()}`)) delete events[k]; }); localStorage.setItem('fm_pro_v5', JSON.stringify(events)); renderCalendar(); renderUI(); }}
 
     renderCalendar();
 </script>
