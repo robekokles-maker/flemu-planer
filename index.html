@@ -22,12 +22,7 @@
             --card: rgba(35, 35, 38, 0.95);
         }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            margin: 0; background: #000; color: white; 
-            overflow-x: hidden;
-            padding-top: env(safe-area-inset-top);
-        }
+        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow-x: hidden; padding-top: env(safe-area-inset-top); }
 
         #pdfViewer, #helpOverlay, #customArea { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
@@ -40,8 +35,7 @@
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); padding: 20px;
         }
-        /* Fix für iOS PDF Scrolling */
-        #pdfFrameBox { flex:1; background:#fff; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+        #pdfFrameBox { flex:1; background:#1a1a1a; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
         
         .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; max-height: 60vh; }
         .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
@@ -55,7 +49,7 @@
         .day.today { border: 2px solid #fff; }
         .day.has-event { font-size: 22px; }
 
-        .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; }
+        .action-btn { background: var(--gold-gradient); padding: 16px; border-radius: 12px; color: #000; text-align: center; font-weight: 900; text-transform: uppercase; border:none; cursor:pointer; width: 100%; margin-bottom: 10px; font-family: inherit; }
         .backup-btn { background: #1c1c1e; border: 2px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 12px; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; }
         .suggest-btn { background: #222; border: 1px solid #444; padding: 10px; border-radius: 10px; color: white; font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor:pointer; }
         .danger-btn { background: #ff453a; color: #fff; padding: 14px; border-radius: 12px; width: 100%; border: none; font-weight: 900; text-transform: uppercase; cursor: pointer; margin-top: 10px; }
@@ -74,10 +68,10 @@
     <div class="help-card" onclick="event.stopPropagation()">
         <h2 style="color:var(--primary); text-transform: uppercase; margin-bottom:15px;">Anleitung</h2>
         <div class="scroll-area">
-            <p><strong>1. Markieren:</strong> Start- & Enddatum antippen (Goldmarkierung).</p>
-            <p><strong>2. Eintragen:</strong> Zeit & Icon wählen. Gilt für alle markierten Tage.</p>
-            <p><strong>3. Eigener Text:</strong> Unter "Anderes" Text eingeben + Enter.</p>
-            <p><strong>4. PDFs:</strong> Schichtplan/Liste direkt ansehen (iOS: Zum Scrollen wischen).</p>
+            <p><strong>1. Markieren:</strong> Start- & Enddatum antippen.</p>
+            <p><strong>2. Eintragen:</strong> Zeit & Icon wählen.</p>
+            <p><strong>3. Eigener Text:</strong> Unter "Anderes" Text + Enter.</p>
+            <p><strong>4. PDFs:</strong> Schichtplan/Liste öffnen. Auf iOS direkt laden/ansehen.</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
@@ -159,7 +153,6 @@
 </div>
 
 <script>
-    // PW & Service Worker Init
     const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
         if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
@@ -286,14 +279,22 @@
         document.getElementById('pdfTitle').innerText = t;
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
+        const downloadButton = `
+            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#1a1a1a; padding:20px; text-align:center;">
+                <div style="font-size:50px; margin-bottom:15px;">📄</div>
+                <h3 style="color:white; margin-bottom:10px;">${t}</h3>
+                <p style="color:#ccc; margin-bottom:25px; font-size:14px;">Klicke unten, um die Datei direkt zu öffnen.</p>
+                <a href="${u}" target="_blank" class="action-btn" style="text-decoration:none; display:block; width:100%; line-height:1.2;">
+                   DATEI ÖFFNEN / LADEN
+                </a>
+            </div>`;
+
         if (isIOS) {
-            // iOS Fix: Erlaubt Scrollen im iframe innerhalb des Scroll-Divs
-            document.getElementById('pdfFrameBox').innerHTML = `
-                <iframe src="${u}" style="width:100%; height:2000px; border:none; pointer-events:all;"></iframe>`;
+            document.getElementById('pdfFrameBox').innerHTML = downloadButton;
         } else {
             document.getElementById('pdfFrameBox').innerHTML = `
                 <object data="${u}" type="application/pdf" width="100%" height="100%">
-                    <iframe src="${u}" width="100%" height="100%" style="border:none;"></iframe>
+                    ${downloadButton}
                 </object>`;
         }
         document.getElementById('pdfViewer').style.display = 'flex';
