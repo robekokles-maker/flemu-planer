@@ -10,6 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F39200">
+    <link rel="manifest" href="manifest.json">
 
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
@@ -21,7 +22,12 @@
             --card: rgba(35, 35, 38, 0.95);
         }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #000; color: white; overflow-x: hidden; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            margin: 0; background: #000; color: white; 
+            overflow-x: hidden;
+            padding-top: env(safe-area-inset-top);
+        }
 
         #pdfViewer, #helpOverlay, #customArea { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
@@ -34,8 +40,10 @@
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 0 30px rgba(243, 146, 0, 0.4); padding: 20px;
         }
+        /* Fix für iOS PDF Scrolling */
+        #pdfFrameBox { flex:1; background:#fff; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+        
         .scroll-area { overflow-y: auto; text-align: left; font-size: 13px; color: #ccc; line-height: 1.6; padding-right: 10px; max-height: 60vh; }
-
         .app { width: 100%; max-width: 500px; margin: 0 auto; background: rgba(15, 15, 17, 0.9); padding-bottom: 40px; }
         .metal-text { font-size: 28px; font-weight: 900; text-align: center; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 25px 0 10px; text-transform: uppercase; font-style: italic; }
         
@@ -64,14 +72,12 @@
 <!-- ANLEITUNG -->
 <div id="helpOverlay" onclick="this.style.display='none'">
     <div class="help-card" onclick="event.stopPropagation()">
-        <h2 style="color:var(--primary); text-transform: uppercase; margin-bottom:15px;">Anleitung & Funktionen</h2>
+        <h2 style="color:var(--primary); text-transform: uppercase; margin-bottom:15px;">Anleitung</h2>
         <div class="scroll-area">
-            <p><strong>1. Zeiträume markieren:</strong> Tippe ein Startdatum und ein Enddatum an. Der Bereich wird <strong>gold markiert</strong>.</p>
-            <p><strong>2. Eintragen:</strong> Uhrzeit & Icon wählen. Gilt für alle markierten Tage.</p>
-            <p><strong>3. Anderes & Eigener Text:</strong> Tippe im Menü "Anderes" deinen Text ein und bestätige mit <strong>"Enter"</strong>. Der Text wird mit einem Notiz-Icon (📝) gespeichert.</p>
-            <p><strong>4. PDFs:</strong> Über die Buttons "Schichtplan" und "Liste" kannst du Dokumente direkt in der App ansehen.</p>
-            <p><strong>5. Sichern & Laden:</strong> Nutze die goldenen Buttons (💾/📂), um Backups deiner Daten zu erstellen oder zu laden.</p>
-            <p><strong>6. Löschen:</strong> Roter Button bei Markierung oder der große rote Button unten für das Jahr.</p>
+            <p><strong>1. Markieren:</strong> Start- & Enddatum antippen (Goldmarkierung).</p>
+            <p><strong>2. Eintragen:</strong> Zeit & Icon wählen. Gilt für alle markierten Tage.</p>
+            <p><strong>3. Eigener Text:</strong> Unter "Anderes" Text eingeben + Enter.</p>
+            <p><strong>4. PDFs:</strong> Schichtplan/Liste direkt ansehen (iOS: Zum Scrollen wischen).</p>
         </div>
         <button class="action-btn" style="margin-top:20px;" onclick="document.getElementById('helpOverlay').style.display='none'">VERSTANDEN</button>
     </div>
@@ -88,7 +94,6 @@
             <button class="suggest-btn" onclick="quickAdd('🚒', 'Feuerwehr')" style="font-size:30px; padding:20px;"><span>🚒</span></button>
             <button class="suggest-btn" onclick="quickAdd('🍴', 'Essen')" style="font-size:30px; padding:20px;"><span>🍴</span></button>
         </div>
-        <!-- Eigener Text + Enter -->
         <input type="text" id="customInput" placeholder="Eigener Text + Enter..." 
                style="width:100%; padding:15px; background:#000; color:white; border:1px solid var(--primary); border-radius:12px; margin-bottom:10px;"
                onkeydown="if(event.key==='Enter') quickAdd('📝', this.value)">
@@ -97,12 +102,12 @@
 </div>
 
 <div id="pdfViewer" onclick="if(event.target === this) closePDF()">
-    <div class="pdf-container" style="height:80vh;">
+    <div class="pdf-container" style="height:85vh;">
         <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #333;">
             <span id="pdfTitle" style="color:var(--primary); font-weight:bold;">PDF</span>
             <button onclick="closePDF()" style="background:var(--primary); border:none; border-radius:5px; padding:5px 10px; font-weight:bold;">X</button>
         </div>
-        <div id="pdfFrameBox" style="flex:1; background:#fff;"></div>
+        <div id="pdfFrameBox"></div>
     </div>
 </div>
 
@@ -154,11 +159,17 @@
 </div>
 
 <script>
+    // PW & Service Worker Init
     const PASS = "Müller 2026";
     if (localStorage.getItem('fm_access') !== 'true') {
         if (prompt("Passwort:") === PASS) localStorage.setItem('fm_access', 'true');
         else location.reload();
     }
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
+    }
+
     setTimeout(() => document.getElementById('loader').style.display='none', 800);
 
     let currentDate = new Date(), realToday = new Date();
@@ -229,33 +240,20 @@
     }
 
     function quickAdd(emoji, title) {
-        // Logik für eigenen Text ohne Emoji
         const finalEmoji = emoji || '📝'; 
         const finalTitle = title || document.getElementById('customInput').value;
-
         if(!rangeStart || !finalTitle) return;
-
         let s = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeStart) : new Date(rangeEnd)) : new Date(rangeStart);
         let e = rangeEnd ? (rangeStart < rangeEnd ? new Date(rangeEnd) : new Date(rangeStart)) : new Date(rangeStart);
-
         while(s <= e) {
             let k = `${s.getDate()}-${s.getMonth()}-${s.getFullYear()}`;
             events[k] = events[k] || {};
-            Object.assign(events[k], {
-                emoji: finalEmoji, 
-                title: finalTitle, 
-                start: document.getElementById('startTime').value, 
-                end: document.getElementById('endTime').value
-            });
+            Object.assign(events[k], { emoji: finalEmoji, title: finalTitle, start: document.getElementById('startTime').value, end: document.getElementById('endTime').value });
             s.setDate(s.getDate()+1);
         }
-
         localStorage.setItem('fm_pro_v5', JSON.stringify(events));
         document.getElementById('customInput').value = '';
-        rangeStart = rangeEnd = null; 
-        toggleCustom(true); 
-        renderCalendar(); 
-        renderUI();
+        rangeStart = rangeEnd = null; toggleCustom(true); renderCalendar(); renderUI();
     }
 
     function exportData() {
@@ -286,7 +284,18 @@
 
     function viewPDF(u, t) {
         document.getElementById('pdfTitle').innerText = t;
-        document.getElementById('pdfFrameBox').innerHTML = `<object data="${u}" type="application/pdf" width="100%" height="100%"><div style="padding:20px; text-align:center;"><a href="${u}" target="_blank" class="action-btn">Öffnen</a></div></object>`;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        if (isIOS) {
+            // iOS Fix: Erlaubt Scrollen im iframe innerhalb des Scroll-Divs
+            document.getElementById('pdfFrameBox').innerHTML = `
+                <iframe src="${u}" style="width:100%; height:2000px; border:none; pointer-events:all;"></iframe>`;
+        } else {
+            document.getElementById('pdfFrameBox').innerHTML = `
+                <object data="${u}" type="application/pdf" width="100%" height="100%">
+                    <iframe src="${u}" width="100%" height="100%" style="border:none;"></iframe>
+                </object>`;
+        }
         document.getElementById('pdfViewer').style.display = 'flex';
     }
 
